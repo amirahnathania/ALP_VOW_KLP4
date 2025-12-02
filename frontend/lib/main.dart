@@ -14,9 +14,10 @@ class BelajarTaniApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'BelajarTani',
       theme: ThemeData(
-        useMaterial3: true,
+        primaryColor: const Color(0xFF8BC784),
+        scaffoldBackgroundColor: Colors.white,
       ),
-      home: const AuthPage(),   // pastikan ini benar
+      home: const AuthPage(),
     );
   }
 }
