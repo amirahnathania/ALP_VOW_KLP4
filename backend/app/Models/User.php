@@ -24,4 +24,12 @@ class User extends Model
     {
         return $this->hasOne(Profil::class, 'Id_User');
     }
+
+    /**
+     * 1 User memiliki 1 BuktiKegiatan (One-to-One Relationship)
+     */
+    public function buktiKegiatan()
+    {
+        return $this->hasOne(BuktiKegiatan::class, 'Id_User');
+    }
 }
