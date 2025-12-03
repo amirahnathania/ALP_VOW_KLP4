@@ -1,5 +1,6 @@
+// main.dart
 import 'package:flutter/material.dart';
-import 'auth_page.dart';
+import 'home_ketua.dart';
 
 void main() {
   runApp(const BelajarTaniApp());
@@ -17,7 +18,9 @@ class BelajarTaniApp extends StatelessWidget {
         primaryColor: const Color(0xFF8BC784),
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const AuthPage(),
+      // To run the Ketua home page, set the home to CalendarPage.
+      // Switch back to AuthPage if needed.
+      home: const CalendarPage(),
     );
   }
 }
