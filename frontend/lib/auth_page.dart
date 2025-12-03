@@ -235,22 +235,22 @@ class _AuthPageState extends State<AuthPage>
           // Content
           Column(
             children: [
-              const SizedBox(height: 120),
-              const Text(
-                "BelajarTani",
-                style: TextStyle(
-                  fontSize: 34,
-                  color: Color(0xFF4A3F2C),
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 40),
+              Container(
+                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
+                width: MediaQuery.of(context).size.width * 0.9,
+                child: Image.asset(
+                  'assets/logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 35),
+              const SizedBox(height: 8),
 
               // Container utama
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(25),
+                  padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.vertical(
@@ -313,7 +313,7 @@ class _AuthPageState extends State<AuthPage>
         _buildLabel("Email"),
         _buildTextField(
           controller: _emailController,
-          hint: "contoh@email.com",
+          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -350,7 +350,6 @@ class _AuthPageState extends State<AuthPage>
         ),
 
         const SizedBox(height: 20),
-        Center(child: _buildGoogleButton()),
 
         const SizedBox(height: 40),
       ],
@@ -365,7 +364,7 @@ class _AuthPageState extends State<AuthPage>
         _buildLabel("Email"),
         _buildTextField(
           controller: _loginEmailController,
-          hint: "contoh@email.com",
+          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -391,7 +390,6 @@ class _AuthPageState extends State<AuthPage>
         ),
 
         const SizedBox(height: 20),
-        Center(child: _buildGoogleButton()),
 
         const SizedBox(height: 40),
       ],
@@ -516,6 +514,7 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
+<<<<<<< HEAD
   Widget _buildGoogleButton() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -562,6 +561,8 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
+=======
+>>>>>>> 3af24aaa0b055f1593a1eec78563b499998cd9e2
   @override
   void dispose() {
     _nameController.dispose();

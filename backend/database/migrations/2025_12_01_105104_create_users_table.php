@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('Kata_Sandi');
             $table->rememberToken();
             $table->timestamps();
+
+            $table->enum('role', ['gapoktan', 'ketua'])->nullable();
         });
     }
 
