@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request; 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\JabatanController;
-use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\ProfilController; // ← PERHATIKAN TIDAK ADA SPASI
 use App\Http\Controllers\KegiatanController;
 use App\Http\Controllers\BuktiKegiatanController;
 
@@ -13,7 +13,9 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
-// ========== LOGIN ROUTE ==========
+Route::post('/users', [UserController::class, 'store']);
+
+// LOGIN ROUTE - FIXED
 Route::post('/users/login', function (Request $request) {
     $request->validate([
         'email' => 'required|email',
@@ -21,9 +23,9 @@ Route::post('/users/login', function (Request $request) {
         'device_name' => 'required',
     ]);
 
-    $user = \App\Models\User::where('email', $request->email)->first();
+    $user = \App\Models\User::where('Email', $request->email)->first();
 
-    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->Kata_Sandi)) {
         return response()->json(['message' => 'Email atau password salah'], 401);
     }
 
@@ -35,12 +37,36 @@ Route::post('/users/login', function (Request $request) {
         'token' => $token,
         'token_type' => 'Bearer',
     ]);
-});
-// ========== END LOGIN ==========
+})->name('login');
 
-// API Routes untuk User, Jabatan, Profil, Kegiatan, dan Bukti Kegiatan
-Route::apiResource('users', UserController::class);
-Route::apiResource('jabatan', JabatanController::class);
-Route::apiResource('profil', ProfilController::class);
-Route::apiResource('kegiatans', KegiatanController::class);
-Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
+// ========== PROTECTED ROUTES (Dengan Auth Sanctum) ==========
+Route::middleware('auth:sanctum')->group(function () {
+    // User routes
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    
+    // Profil routes ← PERBAIKI SEMUA YANG ADA "Prof ilController"
+    Route::get('/profil', [ProfilController::class, 'index']);
+    Route::get('/profil/{id}', [ProfilController::class, 'show']);
+    Route::get('/profil/user/{userId}', [ProfilController::class, 'showByUserId']);
+    Route::post('/profil', [ProfilController::class, 'store']);
+    Route::put('/profil/{id}', [ProfilController::class, 'update']);
+    Route::delete('/profil/{id}', [ProfilController::class, 'destroy']);
+    
+    // Jabatan routes
+    Route::apiResource('jabatan', JabatanController::class);
+    
+    // Kegiatan routes
+    Route::apiResource('kegiatans', KegiatanController::class);
+    
+    // Bukti Kegiatan routes
+    Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
+    
+    // Logout
+    Route::post('/logout', function (Request $request) {
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Logged out successfully']);
+    });
+});
