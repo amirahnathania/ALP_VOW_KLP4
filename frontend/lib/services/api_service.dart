@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // GANTI DENGAN IP LARAVEL ANDA
-  static const String baseUrl = 'http://192.168.1.100:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
   
   // Headers untuk semua request
   static Map<String, String> get headers {
@@ -21,7 +20,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/register'),
+        Uri.parse('$baseUrl/users'),
         headers: headers,
         body: jsonEncode({
           'name': name,
@@ -50,7 +49,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('$baseUrl/users/login'),
         headers: headers,
         body: jsonEncode({
           'email': email,

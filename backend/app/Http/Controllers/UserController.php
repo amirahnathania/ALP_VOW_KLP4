@@ -19,24 +19,47 @@ class UserController extends Controller
     }
 
     // POST /api/users
+    // app/Http/Controllers/UserController.php
     public function store(Request $request)
     {
         $request->validate([
-            'Nama_Pengguna' => 'required|string|max:255',
-            'Email' => 'required|email|unique:users',
-            'Kata_Sandi' => 'required|string|min:6',
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                'unique:users,Email',
+                function ($attribute, $value, $fail) {
+                    $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
+                    $domain = substr(strrchr($value, "@"), 1);
+                    
+                    if (!in_array($domain, $allowedDomains)) {
+                        $fail('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
+                    }
+                }
+            ],
+            'password' => 'required|string|min:8|confirmed',
         ]);
+
+        // Auto-set role
+        $domain = substr(strrchr($request->email, "@"), 1);
+        $role = ($domain == 'ketua.ac.id') ? 'ketua' : 'gapoktan';
 
         $user = User::create([
-            'Nama_Pengguna' => $request->Nama_Pengguna,
-            'Email' => $request->Email,
-            'Kata_Sandi' => Hash::make($request->Kata_Sandi),
+            'Nama_Pengguna' => $request->name,
+            'Email' => $request->email,
+            'Kata_Sandi' => Hash::make($request->password),
+            'role' => $role,
         ]);
 
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'success' => true,
-            'message' => 'User created successfully',
-            'data' => $user
+            'message' => 'Registrasi berhasil',
+            'user' => $user,
+            'token' => $token,
+            'token_type' => 'Bearer',
         ], 201);
     }
 

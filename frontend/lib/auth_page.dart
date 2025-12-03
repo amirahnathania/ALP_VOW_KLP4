@@ -245,22 +245,22 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           // Content
           Column(
             children: [
-              const SizedBox(height: 120),
-              const Text(
-                "BelajarTani",
-                style: TextStyle(
-                  fontSize: 34,
-                  color: Color(0xFF4A3F2C),
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 40),
+              Container(
+                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
+                width: MediaQuery.of(context).size.width * 0.9,
+                child: Image.asset(
+                  'assets/logo.png',
+                  fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 35),
+              const SizedBox(height: 8),
 
               // Container utama
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(25),
+                  padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
@@ -321,7 +321,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _buildLabel("Email"),
         _buildTextField(
           controller: _emailController,
-          hint: "contoh@email.com",
+          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -358,7 +358,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         ),
 
         const SizedBox(height: 20),
-        Center(child: _buildGoogleButton()),
 
         const SizedBox(height: 40),
       ],
@@ -373,7 +372,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _buildLabel("Email"),
         _buildTextField(
           controller: _loginEmailController,
-          hint: "contoh@email.com",
+          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -399,7 +398,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         ),
 
         const SizedBox(height: 20),
-        Center(child: _buildGoogleButton()),
 
         const SizedBox(height: 40),
       ],
@@ -515,50 +513,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               text,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-    );
-  }
-
-  Widget _buildGoogleButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: OutlinedButton(
-        onPressed: _isLoading ? null : _handleGoogleSignIn,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey.shade300),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          backgroundColor: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: Colors.red, width: 2),
-              ),
-              child: const Center(
-                child: Text(
-                  "G",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              "Masuk lewat Google",
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
