@@ -237,12 +237,9 @@ class _AuthPageState extends State<AuthPage>
             children: [
               const SizedBox(height: 40),
               Container(
-                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
+                height: 180, // ← TAMBAHKAN INI (dari 100 jadi 140)
                 width: MediaQuery.of(context).size.width * 0.9,
-                child: Image.asset(
-                  'assets/logo.png',
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
               ),
 
               const SizedBox(height: 8),
@@ -351,6 +348,16 @@ class _AuthPageState extends State<AuthPage>
 
         const SizedBox(height: 20),
 
+        // Atau masuk dengan Google
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text("atau", style: TextStyle(color: Colors.black54)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildGoogleButton(),
+
         const SizedBox(height: 40),
       ],
     );
@@ -390,6 +397,16 @@ class _AuthPageState extends State<AuthPage>
         ),
 
         const SizedBox(height: 20),
+
+        // Atau masuk dengan Google
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text("atau", style: TextStyle(color: Colors.black54)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildGoogleButton(),
 
         const SizedBox(height: 40),
       ],
@@ -514,7 +531,6 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
-<<<<<<< HEAD
   Widget _buildGoogleButton() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -561,8 +577,6 @@ class _AuthPageState extends State<AuthPage>
     );
   }
 
-=======
->>>>>>> 3af24aaa0b055f1593a1eec78563b499998cd9e2
   @override
   void dispose() {
     _nameController.dispose();
