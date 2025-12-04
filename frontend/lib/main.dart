@@ -1,5 +1,6 @@
 // main.dart
 import 'package:flutter/material.dart';
+import 'package:frontend/auth_page.dart';
 import 'home_ketua.dart';
 
 void main() {
@@ -20,7 +21,7 @@ class BelajarTaniApp extends StatelessWidget {
       ),
       // To run the Ketua home page, set the home to CalendarPage.
       // Switch back to AuthPage if needed.
-      home: const CalendarPage(),
+      home: const AuthPage(),
     );
   }
 }
