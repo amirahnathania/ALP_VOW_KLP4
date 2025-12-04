@@ -1,15 +1,13 @@
+// services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl = 'http://10.0.2.2:8000/api';
-  
+
   // Headers untuk semua request
   static Map<String, String> get headers {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    return {'Content-Type': 'application/json', 'Accept': 'application/json'};
   }
 
   // ========== REGISTRASI BIASA ==========
@@ -34,7 +32,9 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal');
+        throw Exception(
+          error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal',
+        );
       }
     } catch (error) {
       print('Register API Error: $error');
@@ -72,7 +72,8 @@ class ApiService {
 
   // ========== GOOGLE LOGIN ==========
   static Future<Map<String, dynamic>> loginWithGoogle(
-      Map<String, dynamic> googleData) async {
+    Map<String, dynamic> googleData,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google'),
@@ -99,10 +100,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/user'),
-        headers: {
-          ...headers,
-          'Authorization': 'Bearer $token',
-        },
+        headers: {...headers, 'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -112,6 +110,39 @@ class ApiService {
       }
     } catch (error) {
       print('Get User API Error: $error');
+      rethrow;
+    }
+  }
+
+  // ========== UPLOAD FOTO TUGAS ==========
+  // Kirim foto dengan multipart ke endpoint tertentu.
+  // Adjust `endpoint` sesuai API Anda, misalnya:
+  // '/tasks/{taskId}/photos' atau '/upload/photo'.
+  static Future<Map<String, dynamic>> uploadTaskPhoto({
+    required String token,
+    required String taskId,
+    required String filePath,
+  }) async {
+    final uri = Uri.parse('$baseUrl/tasks/$taskId/photo');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      })
+      ..files.add(await http.MultipartFile.fromPath('photo', filePath));
+
+    try {
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+          'Upload gagal: ${response.statusCode} ${response.body}',
+        );
+      }
+    } catch (error) {
+      print('Upload Photo API Error: $error');
       rethrow;
     }
   }
