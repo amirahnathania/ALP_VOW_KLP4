@@ -18,9 +18,8 @@ class BelajarTaniApp extends StatelessWidget {
         primaryColor: const Color(0xFF8BC784),
         scaffoldBackgroundColor: Colors.white,
       ),
-      // To run the Ketua home page, set the home to CalendarPage.
-      // Switch back to AuthPage if needed.
-      home: const CalendarPage(),
+      // Start the app on the Ketua Home page UI
+      home: const HomeKetuaPage(),
     );
   }
 }
