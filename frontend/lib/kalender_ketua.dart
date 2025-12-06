@@ -4,8 +4,16 @@ import 'home_ketua.dart';
 import 'profile_page.dart';
 import 'models/tasks.dart';
 
+// kalender_ketua.dart
 class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key});
+  final Map<String, dynamic> user;
+  final String token;
+  
+  CalendarPage({
+    super.key,
+    required this.user,
+    required this.token,
+  });
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -17,10 +25,6 @@ class _CalendarPageState extends State<CalendarPage> {
   final Color cream = const Color(0xFFF2F0D8);
   final Color bg = const Color(0xFFF9F9F9);
 
-  // Penanda warna kegiatan per tanggal (Desember 2025)
-  // Sesuai warna kartu tugas di Home:
-  // 02 Pengolahan Tanah (brown), 10 Penanaman Bibit (hijau/617F59),
-  // 28 Pestisida (abu-abu/7F7E79).
   late Map<String, Color> eventColors;
   DateTime _visibleMonth = DateTime(2025, 12, 1);
   String? _selectedDay; // selected 'DD' in current visible month
@@ -606,7 +610,10 @@ class _CalendarPageState extends State<CalendarPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const HomeKetuaPage()),
+                  MaterialPageRoute(builder: (_) => HomeKetuaPage(
+                    user: widget.user,
+                    token: widget.token,
+                  )),
                 );
               },
             ),
@@ -620,7 +627,10 @@ class _CalendarPageState extends State<CalendarPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  MaterialPageRoute(builder: (_) => ProfilePage(
+                    user: widget.user,
+                    token: widget.token,
+                  )),
                 );
               },
             ),
