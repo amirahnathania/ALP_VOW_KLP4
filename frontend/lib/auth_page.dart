@@ -228,36 +228,25 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             ),
           ),
 
-          // Gradient overlay
+          // Overlay putih 40% opacity untuk seluruh background
           Container(
-            height: 260,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.9),
-                  Colors.white.withOpacity(0.8),
-                  Colors.white.withOpacity(0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
+            color: Colors.white.withOpacity(0.6),
           ),
 
           // Content
           Column(
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
               Container(
-                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
-                width: MediaQuery.of(context).size.width * 0.9,
+                height: 250,
+                width: 250,
                 child: Image.asset(
                   'assets/logo.png',
                   fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 2),
 
               // Container utama
               Expanded(
