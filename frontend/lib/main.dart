@@ -1,7 +1,6 @@
 // main.dart
 import 'package:flutter/material.dart';
 import 'package:frontend/splash_screen.dart';
-
 void main() {
   runApp(const BelajarTaniApp());
 }

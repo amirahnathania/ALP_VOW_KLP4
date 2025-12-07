@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'services/api_service.dart'; 
-import 'home_ketua.dart';      
-
+import 'kalender_ketua.dart';
+import 'services/api_service.dart';
+import 'home_ketua.dart';
 // import 'home_page.dart';
 
 class AuthPage extends StatefulWidget {
@@ -123,7 +123,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeKetuaPage( 
+          builder: (context) => CalendarPage( 
             user: user,
             token: token,
           ),
@@ -173,7 +173,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeKetuaPage(
+          builder: (context) => CalendarPage(
             user: user,
             token: token,
           ),
@@ -228,25 +228,36 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             ),
           ),
 
-          // Overlay putih 40% opacity untuk seluruh background
+          // Gradient overlay
           Container(
-            color: Colors.white.withOpacity(0.6),
+            height: 260,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.9),
+                  Colors.white.withOpacity(0.8),
+                  Colors.white.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
           ),
 
           // Content
           Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 40),
               Container(
-                height: 250,
-                width: 250,
+                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
+                width: MediaQuery.of(context).size.width * 0.9,
                 child: Image.asset(
                   'assets/logo.png',
                   fit: BoxFit.contain,
                 ),
               ),
 
-              const SizedBox(height: 2),
+              const SizedBox(height: 8),
 
               // Container utama
               Expanded(
