@@ -1,8 +1,9 @@
-// auth_page.dart
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'services/api_service.dart';
-import 'home_page.dart';
+import 'services/api_service.dart'; 
+import 'home_ketua.dart';      
+
+// import 'home_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -11,30 +12,29 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage>
-    with SingleTickerProviderStateMixin {
+class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
+  
   // Controller untuk form Daftar
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
-
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  
   // Controller untuk form Masuk
   final TextEditingController _loginEmailController = TextEditingController();
-  final TextEditingController _loginPasswordController =
-      TextEditingController();
-
+  final TextEditingController _loginPasswordController = TextEditingController();
+  
   // State variables
   bool _isLoading = false;
   bool _showPassword = false;
   bool _showConfirmPassword = false;
   bool _showLoginPassword = false;
-
+  
   // Google Sign-In
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
 
   @override
   void initState() {
@@ -42,50 +42,51 @@ class _AuthPageState extends State<AuthPage>
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  //  FUNGSI REGISTRASI BIASA
+  // ================== FUNGSI REGISTRASI BIASA ==================
   Future<void> _handleRegister() async {
     // Validasi form
     if (_nameController.text.isEmpty) {
       _showError('Nama lengkap harus diisi');
       return;
     }
-
+    
     if (!_isValidEmail(_emailController.text)) {
       _showError('Email tidak valid');
       return;
     }
-
+    
     if (_passwordController.text.length < 8) {
       _showError('Kata sandi minimal 8 karakter');
       return;
     }
-
+    
     if (_passwordController.text != _confirmPasswordController.text) {
       _showError('Konfirmasi kata sandi tidak cocok');
       return;
     }
-
+    
     setState(() => _isLoading = true);
-
+    
     try {
       // Panggil API registrasi
-      await ApiService.register(
+      final response = await ApiService.register(
         name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
-
+      
       // Berhasil registrasi
       _showSuccess('Registrasi berhasil! Silakan login');
-
+      
       // Clear form
       _nameController.clear();
       _emailController.clear();
       _passwordController.clear();
       _confirmPasswordController.clear();
-
+      
       // Switch ke tab Login
       _tabController.animateTo(1);
+      
     } catch (error) {
       _showError('Registrasi gagal: $error');
     } finally {
@@ -93,38 +94,42 @@ class _AuthPageState extends State<AuthPage>
     }
   }
 
-  //  FUNGSI LOGIN BIASA
+  // ================== FUNGSI LOGIN BIASA ==================
   Future<void> _handleLogin() async {
     if (!_isValidEmail(_loginEmailController.text)) {
       _showError('Email tidak valid');
       return;
     }
-
+    
     if (_loginPasswordController.text.isEmpty) {
       _showError('Kata sandi harus diisi');
       return;
     }
-
+    
     setState(() => _isLoading = true);
-
+    
     try {
       // Panggil API login
       final response = await ApiService.login(
         email: _loginEmailController.text,
         password: _loginPasswordController.text,
       );
-
+      
       // Simpan token dan user data
       final token = response['token'];
       final user = response['user'];
-
+      
       // Navigasi ke HomePage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomePage(user: user, token: token),
+          builder: (context) => HomeKetuaPage( 
+            user: user,
+            token: token,
+          ),
         ),
       );
+      
     } catch (error) {
       _showError('Login gagal: $error');
     } finally {
@@ -132,22 +137,22 @@ class _AuthPageState extends State<AuthPage>
     }
   }
 
-  //  FUNGSI GOOGLE LOGIN
+  // ================== FUNGSI GOOGLE LOGIN ==================
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
-
+    
     try {
       // 1. Login dengan Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
+      
       if (googleUser == null) {
         throw Exception('User membatalkan login');
       }
-
+      
       // 2. Dapatkan authentication data
-      final GoogleSignInAuthentication googleAuth =
+      final GoogleSignInAuthentication googleAuth = 
           await googleUser.authentication;
-
+      
       // 3. Siapkan data untuk dikirim ke Laravel
       final googleData = {
         'id': googleUser.id,
@@ -157,20 +162,24 @@ class _AuthPageState extends State<AuthPage>
         'access_token': googleAuth.accessToken,
         'id_token': googleAuth.idToken,
       };
-
+      
       // 4. Kirim ke Laravel API
       final apiResponse = await ApiService.loginWithGoogle(googleData);
-
+      
       // 5. Simpan token dan navigasi
       final token = apiResponse['token'];
       final user = apiResponse['user'];
-
+      
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomePage(user: user, token: token),
+          builder: (context) => HomeKetuaPage(
+            user: user,
+            token: token,
+          ),
         ),
       );
+      
     } catch (error) {
       print('Google Login Error: $error');
       _showError('Login dengan Google gagal: $error');
@@ -179,11 +188,11 @@ class _AuthPageState extends State<AuthPage>
     }
   }
 
-  //  HELPER FUNCTIONS
+  // ================== HELPER FUNCTIONS ==================
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
-
+  
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -193,7 +202,7 @@ class _AuthPageState extends State<AuthPage>
       ),
     );
   }
-
+  
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -213,36 +222,31 @@ class _AuthPageState extends State<AuthPage>
         children: [
           // Background image
           Positioned.fill(
-            child: Image.asset("assets/BG_Desa_Sengka.jpeg", fit: BoxFit.cover),
+            child: Image.asset(
+              "assets/BG_Desa_Sengka.jpeg",
+              fit: BoxFit.cover,
+            ),
           ),
 
-          // Gradient overlay
+          // Overlay putih 40% opacity untuk seluruh background
           Container(
-            height: 260,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.9),
-                  Colors.white.withOpacity(0.8),
-                  Colors.white.withOpacity(0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
+            color: Colors.white.withOpacity(0.6),
           ),
 
           // Content
           Column(
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
               Container(
-                height: 180, // ← TAMBAHKAN INI (dari 100 jadi 140)
-                width: MediaQuery.of(context).size.width * 0.9,
-                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+                height: 250,
+                width: 250,
+                child: Image.asset(
+                  'assets/logo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 2),
 
               // Container utama
               Expanded(
@@ -250,9 +254,7 @@ class _AuthPageState extends State<AuthPage>
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(40),
-                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
                   ),
                   child: Column(
                     children: [
@@ -289,13 +291,13 @@ class _AuthPageState extends State<AuthPage>
                 ),
               ),
             ],
-          ),
+          )
         ],
       ),
     );
   }
 
-  //  FORM DAFTAR
+  // ================== FORM DAFTAR ==================
   Widget buildRegisterForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,22 +350,12 @@ class _AuthPageState extends State<AuthPage>
 
         const SizedBox(height: 20),
 
-        // Atau masuk dengan Google
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text("atau", style: TextStyle(color: Colors.black54)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildGoogleButton(),
-
         const SizedBox(height: 40),
       ],
     );
   }
 
-  //  FORM MASUK
+  // ================== FORM MASUK ==================
   Widget buildLoginForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,16 +389,6 @@ class _AuthPageState extends State<AuthPage>
         ),
 
         const SizedBox(height: 20),
-
-        // Atau masuk dengan Google
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Text("atau", style: TextStyle(color: Colors.black54)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildGoogleButton(),
 
         const SizedBox(height: 40),
       ],
@@ -444,10 +426,7 @@ class _AuthPageState extends State<AuthPage>
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 20,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -478,10 +457,7 @@ class _AuthPageState extends State<AuthPage>
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 16,
-            horizontal: 20,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -528,52 +504,6 @@ class _AuthPageState extends State<AuthPage>
               text,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-    );
-  }
-
-  Widget _buildGoogleButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: OutlinedButton(
-        onPressed: _isLoading ? null : _handleGoogleSignIn,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey.shade300),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-          backgroundColor: Colors.white,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: Colors.red, width: 2),
-              ),
-              child: const Center(
-                child: Text(
-                  "G",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              "Masuk lewat Google",
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
