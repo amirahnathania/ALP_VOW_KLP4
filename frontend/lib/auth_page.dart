@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'kalender_ketua.dart';
 import 'services/api_service.dart';
 import 'home_ketua.dart';
 // import 'home_page.dart';
@@ -123,6 +124,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         context,
         MaterialPageRoute(
           builder: (context) => CalendarPage( 
+            user: user,
+            token: token,
           ),
         ),
       );
@@ -171,6 +174,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         context,
         MaterialPageRoute(
           builder: (context) => CalendarPage(
+            user: user,
+            token: token,
           ),
         ),
       );
