@@ -12,7 +12,12 @@ class KegiatanController extends Controller
      */
     public function index()
     {
-        return response()->json(Kegiatan::all());
+        $kegiatans = Kegiatan::with('profil')->get();
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar semua kegiatan',
+            'data' => $kegiatans
+        ]);
     }
 
     /**
@@ -21,15 +26,22 @@ class KegiatanController extends Controller
     public function store(Request $request)
     {
         $Validated = $request->validate([
-            'Nama_Kegiatan' => 'required|string|max:255',
-            'Deskripsi' => 'required|string',
+            'Jenis_Kegiatan' => 'required|string|max:255',
+            'Id_profil' => 'required|exists:profil,Id_Profil',
             'Tanggal' => 'required|date',
-            'Waktu' => 'required',
+            'Waktu' => 'required|date_format:H:i:s',
+            'Jenis_Pestisida' => 'nullable|string|max:255',
             'Target_Penanaman' => 'required|integer',
+            'Keterangan' => 'nullable|string',
         ]);
 
         $kegiatan = Kegiatan::create($Validated);
-        return response()->json(['message' => 'Keigatan sudah ditamabah' , 'data' => $kegiatan], 201);
+        $kegiatan->load('profil');
+        return response()->json([
+            'success' => true,
+            'message' => 'Kegiatan berhasil ditambah',
+            'data' => $kegiatan
+        ], 201);
     }
 
     /**
@@ -37,7 +49,11 @@ class KegiatanController extends Controller
      */
     public function show(Kegiatan $kegiatan)
     {
-        return response()->json($kegiatan);
+        $kegiatan->load('profil');
+        return response()->json([
+            'success' => true,
+            'data' => $kegiatan
+        ]);
     }
 
     /**
@@ -46,15 +62,22 @@ class KegiatanController extends Controller
     public function update(Request $request, Kegiatan $kegiatan)
     {
         $Validated = $request->validate([
-            'Nama_Kegiatan' => 'sometimes|required|string|max:255',
-            'Deskripsi' => 'sometimes|required|string',
+            'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
+            'Id_profil' => 'sometimes|required|exists:profil,Id_Profil',
             'Tanggal' => 'sometimes|required|date',
-            'Waktu' => 'sometimes|required',
+            'Waktu' => 'sometimes|required|date_format:H:i:s',
+            'Jenis_Pestisida' => 'nullable|string|max:255',
             'Target_Penanaman' => 'sometimes|required|integer',
+            'Keterangan' => 'nullable|string',
         ]);
 
         $kegiatan->update($Validated);
-        return response()->json(['message' => 'Kegiatan sudah diperbarui', 'data' => $kegiatan]);
+        $kegiatan->load('profil');
+        return response()->json([
+            'success' => true,
+            'message' => 'Kegiatan berhasil diperbarui',
+            'data' => $kegiatan
+        ]);
     }
 
     /**
@@ -64,10 +87,16 @@ class KegiatanController extends Controller
     {
         $kegiatan = Kegiatan::find($id);
         if (!$kegiatan) {
-            return response()->json(['message' => 'Kegiatan tidak ditemukan'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Kegiatan tidak ditemukan'
+            ], 404);
         }
 
         $kegiatan->delete();
-        return response()->json(['message' => 'Kegiatan sudah dihapus']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Kegiatan berhasil dihapus'
+        ]);
     }
 }

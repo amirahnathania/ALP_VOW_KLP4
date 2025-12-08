@@ -14,7 +14,12 @@ class BuktiKegiatanController extends Controller
      */
     public function index()
     {
-        return response()->json(['data' => BuktiKegiatan::all()]);
+        $buktiKegiatans = BuktiKegiatan::with(['kegiatan', 'user'])->get();
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar semua bukti kegiatan',
+            'data' => $buktiKegiatans
+        ]);
     }
 
     /**
@@ -65,9 +70,10 @@ class BuktiKegiatanController extends Controller
         ];
 
         $buktiKegiatan = BuktiKegiatan::create($data);
+        $buktiKegiatan->load(['kegiatan', 'user']);
         return response()->json([
             'success' => true,
-            'message' => 'Bukti Kegiatan created successfully',
+            'message' => 'Bukti Kegiatan berhasil ditambah',
             'data' => $buktiKegiatan
         ], 201);
     }
@@ -77,7 +83,11 @@ class BuktiKegiatanController extends Controller
      */
     public function show(BuktiKegiatan $buktiKegiatan)
     {
-        return response()->json(['data' => $buktiKegiatan]);
+        $buktiKegiatan->load(['kegiatan', 'user']);
+        return response()->json([
+            'success' => true,
+            'data' => $buktiKegiatan
+        ]);
     }
 
     /**
@@ -137,10 +147,11 @@ class BuktiKegiatanController extends Controller
         }
 
         $buktiKegiatan->update($data);
+        $buktiKegiatan->load(['kegiatan', 'user']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Bukti Kegiatan updated successfully',
+            'message' => 'Bukti Kegiatan berhasil diperbarui',
             'data' => $buktiKegiatan
         ]);
     }
@@ -154,7 +165,7 @@ class BuktiKegiatanController extends Controller
         if (!$buktiKegiatan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bukti Kegiatan not found'
+                'message' => 'Bukti Kegiatan tidak ditemukan'
             ], 404);
         }
 
@@ -162,7 +173,7 @@ class BuktiKegiatanController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Bukti Kegiatan deleted successfully'
+            'message' => 'Bukti Kegiatan berhasil dihapus'
         ]);
     }
 }

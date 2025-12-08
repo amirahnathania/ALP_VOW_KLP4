@@ -13,12 +13,17 @@ return new class extends Migration
     {
         Schema::create('kegiatans', function (Blueprint $table) {
             $table->id("Id_Kegiatan");
-            $table->string('Nama_Kegiatan');
-            $table->string('Deskripsi');
+            $table->string('Jenis_Kegiatan');
+            $table->unsignedBigInteger('Id_profil')->nullable();
             $table->date('Tanggal');
             $table->time('Waktu');
+            $table->string('Jenis_Pestisida')->nullable();
             $table->integer('Target_Penanaman');
+            $table->text('Keterangan')->nullable();
             $table->timestamps();
+            
+            // Foreign Key
+            $table->foreign('Id_profil')->references('Id_Profil')->on('profil')->onDelete('cascade');
         });
     }
 
