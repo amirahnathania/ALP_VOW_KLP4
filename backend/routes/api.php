@@ -44,3 +44,10 @@ Route::apiResource('jabatan', JabatanController::class);
 Route::apiResource('profil', ProfilController::class);
 Route::apiResource('kegiatans', KegiatanController::class);
 Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
+
+// ========== KEGIATAN SPECIAL ROUTES ==========
+// Get kegiatan yang dibuat oleh Ketua Gabungan Kelompok Tani
+Route::get('/kegiatans-by-ketua', [KegiatanController::class, 'getByKetua']);
+
+// Verifikasi apakah profil adalah Ketua Gabungan Kelompok Tani
+Route::get('/verify-ketua/{idProfil}', [KegiatanController::class, 'verifyKetuaJabatan']);
