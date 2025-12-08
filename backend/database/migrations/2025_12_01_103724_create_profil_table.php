@@ -13,8 +13,13 @@ return new class extends Migration
     {
         Schema::create('profil', function (Blueprint $table) {
             $table->id('Id_Profil');
-            $table->foreignId('Id_User')->constrained('users')->onDelete('cascade');
-            $table->foreignId('Id_jabatan')->constrained('jabatan')->onDelete('cascade');
+
+            $table->unsignedBigInteger('Id_User');
+            $table->unsignedBigInteger('Id_jabatan');
+
+            $table->foreign('Id_User')->references('Id_User')->on('users')->onDelete('cascade');
+            $table->foreign('Id_jabatan')->references('Id_jabatan')->on('jabatan')->onDelete('cascade');
+            
             $table->timestamps();
         });
     }

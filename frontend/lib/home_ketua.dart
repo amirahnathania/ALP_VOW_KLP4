@@ -6,7 +6,14 @@ import 'services/photo_service.dart';
 import 'services/api_service.dart';
 
 class HomeKetuaPage extends StatelessWidget {
-  const HomeKetuaPage({super.key});
+  final Map<String, dynamic> user;  // ← TAMBAHKAN INI
+  final String token;               // ← TAMBAHKAN INI
+  
+  HomeKetuaPage({
+    super.key,
+    required this.user,             // ← TAMBAHKAN INI
+    required this.token,            // ← TAMBAHKAN INI
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,11 +60,11 @@ class HomeKetuaPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Halo, Khaira Annisa',
+                        'Halo, ${user['name'] ?? 'Pengguna'}',  // ← PAKAI NAMA USER
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
                           color: Colors.black87,
@@ -113,8 +120,6 @@ class HomeKetuaPage extends StatelessWidget {
                     onCapturePhoto: () async {
                       final file = await PhotoService.captureOrPick(context);
                       if (file == null) return;
-                      // TODO: Ganti token dan taskId sesuai konteks aplikasi Anda.
-                      const token = 'YOUR_TOKEN_HERE';
                       const taskId = 'task-1';
                       try {
                         await ApiService.uploadTaskPhoto(
@@ -147,7 +152,6 @@ class HomeKetuaPage extends StatelessWidget {
                     onCapturePhoto: () async {
                       final file = await PhotoService.captureOrPick(context);
                       if (file == null) return;
-                      const token = 'YOUR_TOKEN_HERE';
                       const taskId = 'task-2';
                       try {
                         await ApiService.uploadTaskPhoto(
@@ -180,7 +184,6 @@ class HomeKetuaPage extends StatelessWidget {
                     onCapturePhoto: () async {
                       final file = await PhotoService.captureOrPick(context);
                       if (file == null) return;
-                      const token = 'YOUR_TOKEN_HERE';
                       const taskId = 'task-3';
                       try {
                         await ApiService.uploadTaskPhoto(
@@ -213,7 +216,6 @@ class HomeKetuaPage extends StatelessWidget {
                     onCapturePhoto: () async {
                       final file = await PhotoService.captureOrPick(context);
                       if (file == null) return;
-                      const token = 'YOUR_TOKEN_HERE';
                       const taskId = 'task-4';
                       try {
                         await ApiService.uploadTaskPhoto(
@@ -233,7 +235,6 @@ class HomeKetuaPage extends StatelessWidget {
                       }
                     },
                   ),
-                  // "Ambil Foto" pada setiap item tugas.
                 ],
               ),
             ),
@@ -247,8 +248,6 @@ class HomeKetuaPage extends StatelessWidget {
 
   Widget _buildBottomNav(BuildContext context) {
     final int currentIndex = 1; // Home is active on this page
-
-    // Navbar-only animation handled per-item via AnimatedSlide below.
 
     Widget buildItem({
       required bool active,
@@ -330,7 +329,11 @@ class HomeKetuaPage extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const CalendarPage()),
+                  MaterialPageRoute(
+                    builder: (_) => CalendarPage(
+                      user: user,
+                      token: token,
+                    )),
                 );
               },
             ),
@@ -353,7 +356,11 @@ class HomeKetuaPage extends StatelessWidget {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  MaterialPageRoute(
+                    builder: (_) => ProfilePage(
+                    user: user,
+                    token: token,
+                  )),
                 );
               },
             ),
