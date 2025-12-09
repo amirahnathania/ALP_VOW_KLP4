@@ -16,22 +16,27 @@ Route::get('/test', function () {
 // ========== LOGIN ROUTE ==========
 Route::post('/users/login', function (Request $request) {
     $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
+        'Email' => 'required|email',
+        'Kata_Sandi' => 'required',
         'device_name' => 'required',
     ]);
 
-    $user = \App\Models\User::where('email', $request->email)->first();
+    $user = \App\Models\User::where('Email', $request->Email)->first();
 
-    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->Kata_Sandi, $user->Kata_Sandi)) {
         return response()->json(['message' => 'Email atau password salah'], 401);
     }
 
     $token = $user->createToken($request->device_name)->plainTextToken;
 
     return response()->json([
+        'success' => true,
         'message' => 'Login berhasil',
-        'user' => $user,
+        'data' => [
+            'id' => $user->Id_User,
+            'nama' => $user->Nama_Pengguna,
+            'email' => $user->Email
+        ],
         'token' => $token,
         'token_type' => 'Bearer',
     ]);

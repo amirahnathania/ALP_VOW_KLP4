@@ -6,13 +6,13 @@ import 'services/photo_service.dart';
 import 'services/api_service.dart';
 
 class HomeKetuaPage extends StatelessWidget {
-  final Map<String, dynamic> user;  // ← TAMBAHKAN INI
-  final String token;               // ← TAMBAHKAN INI
+  final Map<String, dynamic> user; 
+  final String token;               
   
   HomeKetuaPage({
     super.key,
-    required this.user,             // ← TAMBAHKAN INI
-    required this.token,            // ← TAMBAHKAN INI
+    required this.user,            
+    required this.token,           
   });
 
   @override
@@ -62,7 +62,7 @@ class HomeKetuaPage extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Halo, ${user['name'] ?? 'Pengguna'}',  // ← PAKAI NAMA USER
+                        'Halo, ${user['name'] ?? 'Pengguna'}', 
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 20,

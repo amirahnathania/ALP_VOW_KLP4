@@ -280,6 +280,7 @@ class UserController extends Controller
     // POST /api/login
     public function login(Request $request)
     {
+        \Log::debug('[DEBUG] Login request data', $request->all());
         $validated = $request->validate([
             'Email' => [
                 'required',
@@ -288,7 +289,6 @@ class UserController extends Controller
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
-                    
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
@@ -311,16 +311,16 @@ class UserController extends Controller
 
         try {
             $user = User::where('Email', $validated['Email'])->first();
-
+            \Log::debug('[DEBUG] User found', ['user' => $user]);
             if (!$user || !Hash::check($validated['Kata_Sandi'], $user->Kata_Sandi)) {
+                \Log::debug('[DEBUG] Login failed: wrong email or password', ['input' => $validated, 'user' => $user]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Email atau kata sandi salah'
                 ], 401);
             }
-
             $token = $user->createToken('auth_token')->plainTextToken;
-
+            \Log::debug('[DEBUG] Login success', ['user' => $user, 'token' => $token]);
             return response()->json([
                 'success' => true,
                 'message' => 'Login berhasil',
@@ -332,8 +332,8 @@ class UserController extends Controller
                 'token' => $token,
                 'token_type' => 'Bearer',
             ]);
-            
         } catch (\Exception $e) {
+            \Log::error('[DEBUG] Login exception', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal login',

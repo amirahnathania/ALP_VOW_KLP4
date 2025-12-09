@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'kalender_ketua.dart';
 import 'services/api_service.dart';
 import 'home_ketua.dart';
-// import 'home_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -44,6 +42,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   // ================== FUNGSI REGISTRASI BIASA ==================
   Future<void> _handleRegister() async {
+    print('[DEBUG] Register: name=${_nameController.text}, email=${_emailController.text}, password=${_passwordController.text}, confirm=${_confirmPasswordController.text}');
     // Validasi form
     if (_nameController.text.isEmpty) {
       _showError('Nama lengkap harus diisi');
@@ -69,11 +68,13 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     
     try {
       // Panggil API registrasi
+      print('[DEBUG] Calling ApiService.register');
       final response = await ApiService.register(
         name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
+      print('[DEBUG] Register response: $response');
       
       // Berhasil registrasi
       _showSuccess('Registrasi berhasil! Silakan login');
@@ -88,6 +89,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       _tabController.animateTo(1);
       
     } catch (error) {
+      print('[DEBUG] Register error: $error');
       _showError('Registrasi gagal: $error');
     } finally {
       setState(() => _isLoading = false);
@@ -96,6 +98,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   // ================== FUNGSI LOGIN BIASA ==================
   Future<void> _handleLogin() async {
+    print('[DEBUG] Login: email=${_loginEmailController.text}, password=${_loginPasswordController.text}');
     if (!_isValidEmail(_loginEmailController.text)) {
       _showError('Email tidak valid');
       return;
@@ -110,20 +113,23 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     
     try {
       // Panggil API login
+      print('[DEBUG] Calling ApiService.login');
       final response = await ApiService.login(
         email: _loginEmailController.text,
         password: _loginPasswordController.text,
       );
-      
+      print('[DEBUG] Login response: $response');
       // Simpan token dan user data
       final token = response['token'];
-      final user = response['user'];
+      final user = response['data'];
+      print('[DEBUG] Login token: $token');
+      print('[DEBUG] Login user: $user');
       
       // Navigasi ke HomePage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => CalendarPage( 
+          builder: (context) => HomeKetuaPage(
             user: user,
             token: token,
           ),
@@ -131,6 +137,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       );
       
     } catch (error) {
+      print('[DEBUG] Login error: $error');
       _showError('Login gagal: $error');
     } finally {
       setState(() => _isLoading = false);
@@ -173,7 +180,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => CalendarPage(
+          builder: (context) => HomeKetuaPage(
             user: user,
             token: token,
           ),
@@ -313,7 +320,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel("Nama Lengkap"),
+        _buildLabel("Nama Pengguna"),
         _buildTextField(
           controller: _nameController,
           hint: "Masukkan nama lengkap",
