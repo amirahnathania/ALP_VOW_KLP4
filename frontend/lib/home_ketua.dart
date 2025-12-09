@@ -6,13 +6,13 @@ import 'services/photo_service.dart';
 import 'services/api_service.dart';
 
 class HomeKetuaPage extends StatelessWidget {
-  final Map<String, dynamic> user;  // ← TAMBAHKAN INI
-  final String token;               // ← TAMBAHKAN INI
-  
+  final Map<String, dynamic> user; // ← TAMBAHKAN INI
+  final String token; // ← TAMBAHKAN INI
+
   HomeKetuaPage({
     super.key,
-    required this.user,             // ← TAMBAHKAN INI
-    required this.token,            // ← TAMBAHKAN INI
+    required this.user, // ← TAMBAHKAN INI
+    required this.token, // ← TAMBAHKAN INI
   });
 
   @override
@@ -62,7 +62,7 @@ class HomeKetuaPage extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Halo, ${user['name'] ?? 'Pengguna'}',  // ← PAKAI NAMA USER
+                        'Halo, ${user['name'] ?? 'Pengguna'}', // ← PAKAI NAMA USER
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 20,
@@ -330,10 +330,8 @@ class HomeKetuaPage extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CalendarPage(
-                      user: user,
-                      token: token,
-                    )),
+                    builder: (_) => CalendarPage(user: user, token: token),
+                  ),
                 );
               },
             ),
@@ -357,10 +355,8 @@ class HomeKetuaPage extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ProfilePage(
-                    user: user,
-                    token: token,
-                  )),
+                    builder: (_) => ProfilePage(user: user, token: token),
+                  ),
                 );
               },
             ),
