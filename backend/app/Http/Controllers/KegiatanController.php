@@ -91,9 +91,17 @@ class KegiatanController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Kegiatan $kegiatan)
+    public function show($id)
     {
-        $kegiatan->load('profil');
+        $kegiatan = Kegiatan::with('profil')->find($id);
+        
+        if (!$kegiatan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Id_Kegiatan tidak ditemukan'
+            ], 404);
+        }
+
         return response()->json([
             'success' => true,
             'data' => $kegiatan
@@ -103,11 +111,30 @@ class KegiatanController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Kegiatan $kegiatan)
+    public function update(Request $request, $id)
     {
+        // Cari kegiatan berdasarkan ID
+        $kegiatan = Kegiatan::find($id);
+        
+        if (!$kegiatan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Id_Kegiatan tidak ditemukan'
+            ], 404);
+        }
+
+        // Validasi: hanya Ketua yang bisa update kegiatan
+        $jabatanValidation = $this->validateProfilIsKetua($kegiatan->Id_Profil);
+        if (!$jabatanValidation['valid']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat mengubah kegiatan'
+            ], 403);
+        }
+
         $Validated = $request->validate([
             'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
-            'Id_Profil' => 'sometimes|required|exists:profil,Id_Profil',
+            'Id_Profil' => 'required|exists:profil,Id_Profil',
             'Tanggal' => 'sometimes|required|date',
             'Waktu' => 'sometimes|required|date_format:H:i:s',
             'Jenis_Pestisida' => 'nullable|string|max:255',
@@ -115,13 +142,13 @@ class KegiatanController extends Controller
             'Keterangan' => 'nullable|string',
         ]);
 
-        // Jika Id_Profil diubah, validasi jabatan
+        // Jika Id_Profil diubah, validasi jabatan profil baru
         if (isset($Validated['Id_Profil']) && $Validated['Id_Profil'] !== $kegiatan->Id_Profil) {
-            $jabatanValidation = $this->validateProfilIsKetua($Validated['Id_Profil']);
-            if (!$jabatanValidation['valid']) {
+            $jabatanValidationNew = $this->validateProfilIsKetua($Validated['Id_Profil']);
+            if (!$jabatanValidationNew['valid']) {
                 return response()->json([
                     'success' => false,
-                    'message' => $jabatanValidation['message']
+                    'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat mengubah kegiatan'
                 ], 403);
             }
         }

@@ -29,37 +29,41 @@ class BuktiKegiatanController extends Controller
     {
         // Check if Bukti_Foto is a file or string
         $isFile = $request->hasFile('Bukti_Foto');
-        $isString = $request->has('Bukti_Foto') && is_string($request->input('Bukti_Foto'));
 
         $validationRules = [
-            'Id_Kegiatan' => 'required|exists:kegiatans,Id_Kegiatan',
-            'Id_User' => 'required|exists:users,Id_User|unique:bukti_kegiatans,Id_User',
+            'Id_Kegiatan' => [
+                'required',
+                Rule::exists('kegiatans', 'Id_Kegiatan')
+            ],
+            'Id_User' => [
+                'required',
+                Rule::exists('users', 'Id_User'),
+                Rule::unique('bukti_kegiatans', 'Id_User')
+            ],
         ];
 
-        // Only validate as image if it's a file upload
-        if ($isFile) {
-            $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
-        } else {
-            $validationRules['Bukti_Foto'] = 'required|string';
-        }
+        // Bukti_Foto harus berupa file gambar
+        $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
 
         $request->validate($validationRules, [
             'Id_User.unique' => 'User ini sudah pernah mengirim bukti kegiatan. Satu user hanya boleh mengirim 1 bukti.',
+            'Bukti_Foto.required' => 'Anda harus mengirim file gambar',
+            'Bukti_Foto.image' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.mimes' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.max' => 'Ukuran gambar tidak boleh lebih dari 5MB',
         ]);
 
-        // Handle file upload or string path
+        // Handle file upload
         $fotoPath = null;
         if ($isFile) {
             $file = $request->file('Bukti_Foto');
             $fotoPath = $file->store('bukti_kegiatans', 'public');
-        } elseif ($isString) {
-            $fotoPath = $request->input('Bukti_Foto');
         }
 
         if (!$fotoPath) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bukti_Foto is required (file or string path)'
+                'message' => 'Anda harus mengirim file gambar'
             ], 422);
         }
 
@@ -95,9 +99,8 @@ class BuktiKegiatanController extends Controller
      */
     public function update(Request $request, BuktiKegiatan $buktiKegiatan)
     {
-        // Check if Bukti_Foto is a file or string
+        // Check if Bukti_Foto is a file
         $isFile = $request->hasFile('Bukti_Foto');
-        $isString = $request->has('Bukti_Foto') && is_string($request->input('Bukti_Foto'));
 
         $validationRules = [
             'Id_Kegiatan' => [
@@ -112,14 +115,17 @@ class BuktiKegiatanController extends Controller
             ],
         ];
 
-        // Only validate as image if it's a file upload
-        if ($isFile) {
-            $validationRules['Bukti_Foto'] = 'sometimes|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
-        } elseif ($isString) {
-            $validationRules['Bukti_Foto'] = 'sometimes|string';
+        // If Bukti_Foto is provided, it must be a file image
+        if ($request->has('Bukti_Foto')) {
+            $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
         }
 
-        $request->validate($validationRules);
+        $request->validate($validationRules, [
+            'Bukti_Foto.required' => 'Anda harus mengirim file gambar',
+            'Bukti_Foto.image' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.mimes' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.max' => 'Ukuran gambar tidak boleh lebih dari 5MB',
+        ]);
 
         $data = [];
 
@@ -138,12 +144,6 @@ class BuktiKegiatanController extends Controller
             }
             $file = $request->file('Bukti_Foto');
             $data['Bukti_Foto'] = $file->store('bukti_kegiatans', 'public');
-        } elseif ($isString) {
-            // Allow string path for testing purposes
-            if ($buktiKegiatan->Bukti_Foto) {
-                Storage::disk('public')->delete($buktiKegiatan->Bukti_Foto);
-            }
-            $data['Bukti_Foto'] = $request->input('Bukti_Foto');
         }
 
         $buktiKegiatan->update($data);
