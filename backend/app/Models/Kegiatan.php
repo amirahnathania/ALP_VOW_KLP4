@@ -10,10 +10,17 @@ class Kegiatan extends Model
     protected $table = 'kegiatans';
     
     protected $fillable = [
-        'Nama_Kegiatan',
-        'Deskripsi',
+        'Jenis_Kegiatan',
+        'Id_Profil',
         'Tanggal',
         'Waktu',
+        'Jenis_Pestisida',
         'Target_Penanaman',
+        'Keterangan',
     ];
+    
+public function profil()
+    {
+        return $this->belongsTo(Profil::class,  'Id_Profil');
+    }
 }
