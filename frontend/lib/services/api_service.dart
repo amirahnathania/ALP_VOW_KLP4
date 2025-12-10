@@ -1,5 +1,5 @@
-// services/api_service.dart
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
@@ -37,7 +37,7 @@ class ApiService {
         );
       }
     } catch (error) {
-      print('Register API Error: $error');
+      debugPrint('Register API Error: $error');
       rethrow;
     }
   }
@@ -65,7 +65,7 @@ class ApiService {
         throw Exception(error['message'] ?? 'Login gagal');
       }
     } catch (error) {
-      print('Login API Error: $error');
+      debugPrint('Login API Error: $error');
       rethrow;
     }
   }
@@ -90,7 +90,7 @@ class ApiService {
         throw Exception('Google login failed: ${response.statusCode}');
       }
     } catch (error) {
-      print('Google Login API Error: $error');
+      debugPrint('Google Login API Error: $error');
       rethrow;
     }
   }
@@ -109,21 +109,19 @@ class ApiService {
         throw Exception('Failed to get user data');
       }
     } catch (error) {
-      print('Get User API Error: $error');
+      debugPrint('Get User API Error: $error');
       rethrow;
     }
   }
 
   // ========== UPLOAD FOTO TUGAS ==========
-  // Kirim foto dengan multipart ke endpoint tertentu.
-  // Adjust `endpoint` sesuai API Anda, misalnya:
-  // '/tasks/{taskId}/photos' atau '/upload/photo'.
   static Future<Map<String, dynamic>> uploadTaskPhoto({
     required String token,
     required String taskId,
     required String filePath,
   }) async {
     final uri = Uri.parse('$baseUrl/tasks/$taskId/photo');
+
     final request = http.MultipartRequest('POST', uri)
       ..headers.addAll({
         'Accept': 'application/json',
@@ -134,15 +132,14 @@ class ApiService {
     try {
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
       } else {
-        throw Exception(
-          'Upload gagal: ${response.statusCode} ${response.body}',
-        );
+        throw Exception('Upload gagal: ${response.statusCode} ${response.body}');
       }
     } catch (error) {
-      print('Upload Photo API Error: $error');
+      debugPrint('Upload Photo API Error: $error');
       rethrow;
     }
   }
