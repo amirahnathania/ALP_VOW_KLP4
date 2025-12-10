@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'services/api_service.dart';
-import 'home_ketua.dart';
 import 'home_gapoktan.dart';
-import 'kalender_ketua.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -12,29 +10,30 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin {
+class _AuthPageState extends State<AuthPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   // Controller untuk form Daftar
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   // Controller untuk form Masuk
   final TextEditingController _loginEmailController = TextEditingController();
-  final TextEditingController _loginPasswordController = TextEditingController();
-  
+  final TextEditingController _loginPasswordController =
+      TextEditingController();
+
   // State variables
   bool _isLoading = false;
   bool _showPassword = false;
   bool _showConfirmPassword = false;
   bool _showLoginPassword = false;
-  
+
   // Google Sign-In
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   @override
   void initState() {
@@ -45,53 +44,56 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   // ================== FUNGSI REGISTRASI BIASA ==================
   Future<void> _handleRegister() async {
     // Validasi form
-    print('REGISTER_DEBUG: name=${_nameController.text}, email=${_emailController.text}, password=${_passwordController.text}, confirm=${_confirmPasswordController.text}');
     if (_nameController.text.isEmpty) {
       _showError('Nama lengkap harus diisi');
       return;
     }
-    
+
     if (!_isValidEmail(_emailController.text)) {
-      _showError('email tidak valid');
+      _showError('Email tidak valid');
       return;
     }
-    
+
     if (_passwordController.text.length < 8) {
-      _showError('password minimal 8 karakter');
+      _showError('Kata sandi minimal 8 karakter');
       return;
     }
-    
+
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showError('Konfirmasi password tidak cocok');
+      _showError('Konfirmasi kata sandi tidak cocok');
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       // Panggil API registrasi
-      final response = await ApiService.register(
+      await ApiService.register(
         name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
-      
+
+      if (!mounted) return;
+
       // Berhasil registrasi
       _showSuccess('Registrasi berhasil! Silakan login');
-      
+
       // Clear form
       _nameController.clear();
       _emailController.clear();
       _passwordController.clear();
       _confirmPasswordController.clear();
-      
+
       // Switch ke tab Login
       _tabController.animateTo(1);
-      
     } catch (error) {
+      if (!mounted) return;
       _showError('Registrasi gagal: $error');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -101,54 +103,60 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       _showError('Email tidak valid');
       return;
     }
-    
+
     if (_loginPasswordController.text.isEmpty) {
-      _showError('password harus diisi');
+      _showError('Kata sandi harus diisi');
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
-      final res = await ApiService.login(
-        email: _loginEmailController.text.trim(),
+      // Panggil API login
+      final response = await ApiService.login(
+        email: _loginEmailController.text,
         password: _loginPasswordController.text,
       );
 
-      if (res['success'] == true) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomePage(
-              user: res['data'],
-              token: res['token'],
-            ),
-          ),
-        );
-      } else {
-        _showError(res['message'] ?? "Login gagal");
+      if (!mounted) return;
+
+      // Simpan token dan user data
+      final token = response['token'];
+      final user = response['user'];
+
+      // Navigasi ke HomePage
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(user: user, token: token),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showError('Login gagal: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
-    } catch (e) {
-      _showError("Login gagal: $e");
     }
   }
 
   // ================== FUNGSI GOOGLE LOGIN ==================
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // 1. Login dengan Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         throw Exception('User membatalkan login');
       }
-      
+
       // 2. Dapatkan authentication data
-      final GoogleSignInAuthentication googleAuth = 
+      final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-      
+
       // 3. Siapkan data untuk dikirim ke Laravel
       final googleData = {
         'id': googleUser.id,
@@ -158,29 +166,30 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         'access_token': googleAuth.accessToken,
         'id_token': googleAuth.idToken,
       };
-      
+
       // 4. Kirim ke Laravel API
       final apiResponse = await ApiService.loginWithGoogle(googleData);
-      
+
+      if (!mounted) return;
+
       // 5. Simpan token dan navigasi
       final token = apiResponse['token'];
       final user = apiResponse['user'];
-      
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomePage(
-            user: user,
-            token: token,
-          ),
+          builder: (context) => HomePage(user: user, token: token),
         ),
       );
-      
     } catch (error) {
-      print('Google Login Error: $error');
+      debugPrint('Google Login Error: $error');
+      if (!mounted) return;
       _showError('Login dengan Google gagal: $error');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -188,7 +197,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
-  
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -198,7 +207,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       ),
     );
   }
-  
+
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -213,15 +222,12 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFFFDF4),
       body: Stack(
         children: [
           // Background image
           Positioned.fill(
-            child: Image.asset(
-              "assets/BG_Desa_Sengka.jpeg",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset("assets/BG_Desa_Sengka.jpeg", fit: BoxFit.cover),
           ),
 
           // Gradient overlay
@@ -244,13 +250,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           Column(
             children: [
               const SizedBox(height: 40),
-              Container(
-                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
+              SizedBox(
+                height: 180,
                 width: MediaQuery.of(context).size.width * 0.9,
-                child: Image.asset(
-                  'assets/logo.png',
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
               ),
 
               const SizedBox(height: 8),
@@ -261,7 +264,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(40),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -298,7 +303,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -309,22 +314,22 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel("Nama Pengguna"),
+        _buildLabel("Nama Lengkap"),
         _buildTextField(
           controller: _nameController,
           hint: "Masukkan nama lengkap",
           icon: Icons.person,
         ),
 
-        _buildLabel("email"),
+        _buildLabel("Email"),
         _buildTextField(
           controller: _emailController,
-          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
+          hint: "nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
 
-        _buildLabel("password"),
+        _buildLabel("Kata Sandi"),
         _buildPasswordField(
           controller: _passwordController,
           hint: "Minimal 8 karakter",
@@ -335,10 +340,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           },
         ),
 
-        _buildLabel("Konfirmasi password"),
+        _buildLabel("Konfirmasi Kata Sandi"),
         _buildPasswordField(
           controller: _confirmPasswordController,
-          hint: "Ulangi password",
+          hint: "Ulangi kata sandi",
           isPassword: true,
           showPassword: _showConfirmPassword,
           onToggleVisibility: () {
@@ -367,10 +372,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel("email"),
+        _buildLabel("Email"),
         _buildTextField(
           controller: _loginEmailController,
-          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
+          hint: "nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -396,7 +401,14 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         ),
 
         const SizedBox(height: 20),
-
+        Center(
+          child: Text(
+            "atau masuk dengan",
+            style: TextStyle(color: Colors.black.withOpacity(0.6)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(child: _buildGoogleButton()),
         const SizedBox(height: 40),
       ],
     );
@@ -433,7 +445,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -464,7 +479,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -511,6 +529,20 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
               text,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return OutlinedButton.icon(
+      onPressed: _isLoading ? null : _handleGoogleSignIn,
+      icon: const Icon(Icons.g_translate, color: Colors.redAccent, size: 24),
+      label: const Text('Masuk dengan Google'),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        foregroundColor: const Color(0xFF4A3F2C),
+        side: const BorderSide(color: Color(0xFF8BC784)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      ),
     );
   }
 
