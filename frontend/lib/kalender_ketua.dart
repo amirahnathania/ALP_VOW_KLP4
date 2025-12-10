@@ -8,12 +8,8 @@ import 'models/tasks.dart';
 class CalendarPage extends StatefulWidget {
   final Map<String, dynamic> user;
   final String token;
-  
-  CalendarPage({
-    super.key,
-    required this.user,
-    required this.token,
-  });
+
+  CalendarPage({super.key, required this.user, required this.token});
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -610,10 +606,10 @@ class _CalendarPageState extends State<CalendarPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => HomeKetuaPage(
-                    user: widget.user,
-                    token: widget.token,
-                  )),
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        HomeKetuaPage(user: widget.user, token: widget.token),
+                  ),
                 );
               },
             ),
@@ -627,10 +623,10 @@ class _CalendarPageState extends State<CalendarPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => ProfilePage(
-                    user: widget.user,
-                    token: widget.token,
-                  )),
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ProfilePage(user: widget.user, token: widget.token),
+                  ),
                 );
               },
             ),

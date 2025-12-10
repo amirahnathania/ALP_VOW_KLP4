@@ -1,3 +1,4 @@
+// splash_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'auth_page.dart';
@@ -74,11 +75,8 @@ class _SplashScreenState extends State<SplashScreen>
                 const AuthPage(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
+                  return FadeTransition(opacity: animation, child: child);
+                },
             transitionDuration: const Duration(milliseconds: 500),
           ),
         );
@@ -147,10 +145,7 @@ class TrianglePainter extends CustomPainter {
   final double animationValue;
   final Color color;
 
-  TrianglePainter({
-    required this.animationValue,
-    required this.color,
-  });
+  TrianglePainter({required this.animationValue, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

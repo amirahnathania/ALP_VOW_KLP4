@@ -42,25 +42,25 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   // ================== FUNGSI REGISTRASI BIASA ==================
   Future<void> _handleRegister() async {
-    print('[DEBUG] Register: name=${_nameController.text}, email=${_emailController.text}, password=${_passwordController.text}, confirm=${_confirmPasswordController.text}');
     // Validasi form
+    print('REGISTER_DEBUG: name=${_nameController.text}, email=${_emailController.text}, password=${_passwordController.text}, confirm=${_confirmPasswordController.text}');
     if (_nameController.text.isEmpty) {
       _showError('Nama lengkap harus diisi');
       return;
     }
     
     if (!_isValidEmail(_emailController.text)) {
-      _showError('Email tidak valid');
+      _showError('email tidak valid');
       return;
     }
     
     if (_passwordController.text.length < 8) {
-      _showError('Kata sandi minimal 8 karakter');
+      _showError('password minimal 8 karakter');
       return;
     }
     
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showError('Konfirmasi kata sandi tidak cocok');
+      _showError('Konfirmasi password tidak cocok');
       return;
     }
     
@@ -68,13 +68,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     
     try {
       // Panggil API registrasi
-      print('[DEBUG] Calling ApiService.register');
       final response = await ApiService.register(
         name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
-      print('[DEBUG] Register response: $response');
       
       // Berhasil registrasi
       _showSuccess('Registrasi berhasil! Silakan login');
@@ -89,7 +87,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       _tabController.animateTo(1);
       
     } catch (error) {
-      print('[DEBUG] Register error: $error');
       _showError('Registrasi gagal: $error');
     } finally {
       setState(() => _isLoading = false);
@@ -98,49 +95,39 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   // ================== FUNGSI LOGIN BIASA ==================
   Future<void> _handleLogin() async {
-    print('[DEBUG] Login: email=${_loginEmailController.text}, password=${_loginPasswordController.text}');
     if (!_isValidEmail(_loginEmailController.text)) {
       _showError('Email tidak valid');
       return;
     }
     
     if (_loginPasswordController.text.isEmpty) {
-      _showError('Kata sandi harus diisi');
+      _showError('password harus diisi');
       return;
     }
     
     setState(() => _isLoading = true);
     
     try {
-      // Panggil API login
-      print('[DEBUG] Calling ApiService.login');
-      final response = await ApiService.login(
-        email: _loginEmailController.text,
+      final res = await ApiService.login(
+        email: _loginEmailController.text.trim(),
         password: _loginPasswordController.text,
       );
-      print('[DEBUG] Login response: $response');
-      // Simpan token dan user data
-      final token = response['token'];
-      final user = response['data'];
-      print('[DEBUG] Login token: $token');
-      print('[DEBUG] Login user: $user');
-      
-      // Navigasi ke HomePage
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomeKetuaPage(
-            user: user,
-            token: token,
+
+      if (res['success'] == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeKetuaPage(
+              user: res['data'],
+              token: res['token'],
+            ),
           ),
-        ),
-      );
-      
-    } catch (error) {
-      print('[DEBUG] Login error: $error');
-      _showError('Login gagal: $error');
-    } finally {
-      setState(() => _isLoading = false);
+        );
+      } else {
+        _showError(res['message'] ?? "Login gagal");
+      }
+    } catch (e) {
+      _showError("Login gagal: $e");
     }
   }
 
@@ -327,7 +314,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           icon: Icons.person,
         ),
 
-        _buildLabel("Email"),
+        _buildLabel("email"),
         _buildTextField(
           controller: _emailController,
           hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
@@ -335,7 +322,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           keyboardType: TextInputType.emailAddress,
         ),
 
-        _buildLabel("Kata Sandi"),
+        _buildLabel("password"),
         _buildPasswordField(
           controller: _passwordController,
           hint: "Minimal 8 karakter",
@@ -346,10 +333,10 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           },
         ),
 
-        _buildLabel("Konfirmasi Kata Sandi"),
+        _buildLabel("Konfirmasi password"),
         _buildPasswordField(
           controller: _confirmPasswordController,
-          hint: "Ulangi kata sandi",
+          hint: "Ulangi password",
           isPassword: true,
           showPassword: _showConfirmPassword,
           onToggleVisibility: () {
@@ -378,7 +365,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel("Email"),
+        _buildLabel("email"),
         _buildTextField(
           controller: _loginEmailController,
           hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",

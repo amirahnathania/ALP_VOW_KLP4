@@ -18,19 +18,17 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    print('[DEBUG] ApiService.register called with name=$name, email=$email, password=$password');
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/users'),
         headers: headers,
         body: jsonEncode({
           'Nama_Pengguna': name,
-          'Email': email,
-          'Kata_Sandi': password,
-          'Kata_Sandi_confirmation': password,
+          'email': email,
+          'password': password,
+          'password_confirmation': password,
         }),
       );
-      print('[DEBUG] ApiService.register response: status=${response.statusCode}, body=${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -39,7 +37,7 @@ class ApiService {
         throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal');
       }
     } catch (error) {
-      print('[DEBUG] ApiService.register error: $error');
+      print('Register API Error: $error');
       rethrow;
     }
   }
@@ -49,27 +47,27 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    print('[DEBUG] ApiService.login called with email=$email, password=$password');
+    print('LOGIN_DEBUG: email=$email, password=$password');
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/users/login'),
+        Uri.parse('$baseUrl/login'),
         headers: headers,
         body: jsonEncode({
-          'Email': email,
-          'Kata_Sandi': password,
-          'device_name': 'flutter_app',
+          'email': email,
+          'password': password,
         }),
       );
-      print('[DEBUG] ApiService.login response: status=${response.statusCode}, body=${response.body}');
+
+      print('LOGIN_RESPONSE: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Login gagal');
+        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Login gagal (${response.statusCode})');
       }
     } catch (error) {
-      print('[DEBUG] ApiService.login error: $error');
+      print('Login API Error: $error');
       rethrow;
     }
   }
@@ -121,9 +119,6 @@ class ApiService {
   }
 
   // ========== UPLOAD FOTO TUGAS ==========
-  // Kirim foto dengan multipart ke endpoint tertentu.
-  // Adjust `endpoint` sesuai API Anda, misalnya:
-  // '/tasks/{taskId}/photos' atau '/upload/photo'.
   static Future<Map<String, dynamic>> uploadTaskPhoto({
     required String token,
     required String taskId,

@@ -1,18 +1,16 @@
 // home_ketua.dart
 import 'package:flutter/material.dart';
-import 'kalender_ketua.dart';
-import 'profile_page.dart';
 import 'services/photo_service.dart';
 import 'services/api_service.dart';
 
 class HomeKetuaPage extends StatelessWidget {
-  final Map<String, dynamic> user; 
-  final String token;               
-  
+  final Map<String, dynamic> user; // ← TAMBAHKAN INI
+  final String token; // ← TAMBAHKAN INI
+
   HomeKetuaPage({
     super.key,
-    required this.user,            
-    required this.token,           
+    required this.user, // ← TAMBAHKAN INI
+    required this.token, // ← TAMBAHKAN INI
   });
 
   @override
@@ -62,7 +60,7 @@ class HomeKetuaPage extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Halo, ${user['name'] ?? 'Pengguna'}', 
+                        'Halo, ${user['name'] ?? 'Pengguna'}', // ← PAKAI NAMA USER
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 20,
@@ -237,132 +235,6 @@ class HomeKetuaPage extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-
-            _buildBottomNav(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    final int currentIndex = 1; // Home is active on this page
-
-    Widget buildItem({
-      required bool active,
-      required IconData icon,
-      required VoidCallback onTap,
-    }) {
-      return Expanded(
-        flex: active ? 2 : 1,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(28),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            height: 56,
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF62903A) : Colors.transparent,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: active ? Colors.black87 : Colors.black26,
-                width: active ? 2.0 : 1.0,
-              ),
-              boxShadow: active
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Center(
-              child: Icon(
-                icon,
-                size: active ? 22 : 20,
-                color: active ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    final Offset navOffset = currentIndex == 0
-        ? const Offset(-0.02, 0)
-        : currentIndex == 1
-        ? Offset.zero
-        : const Offset(0.02, 0);
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF4),
-        borderRadius: BorderRadius.circular(36),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeInOut,
-        offset: currentIndex == 0
-            ? const Offset(-0.06, 0)
-            : currentIndex == 1
-            ? Offset.zero
-            : const Offset(0.06, 0),
-        child: Row(
-          children: [
-            // Calendar
-            buildItem(
-              active: currentIndex == 0,
-              icon: Icons.calendar_today,
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CalendarPage(
-                      user: user,
-                      token: token,
-                    )),
-                );
-              },
-            ),
-
-            const SizedBox(width: 12),
-
-            // Home (active)
-            buildItem(
-              active: currentIndex == 1,
-              icon: Icons.home_outlined,
-              onTap: () {},
-            ),
-
-            const SizedBox(width: 12),
-
-            // Profile
-            buildItem(
-              active: currentIndex == 2,
-              icon: Icons.person_outline,
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProfilePage(
-                    user: user,
-                    token: token,
-                  )),
-                );
-              },
             ),
           ],
         ),
