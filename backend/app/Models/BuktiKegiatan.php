@@ -13,6 +13,7 @@ class BuktiKegiatan extends Model
         'Id_Kegiatan',
         'Id_User',
         'Bukti_Foto',
+        'mime_type',
     ];
 
     /**

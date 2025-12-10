@@ -49,3 +49,6 @@ Route::apiResource('jabatan', JabatanController::class);
 Route::apiResource('profil', ProfilController::class);
 Route::apiResource('kegiatans', KegiatanController::class);
 Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
+
+// Endpoint khusus untuk menampilkan gambar BLOB
+Route::get('bukti_kegiatans/{id}/image', [BuktiKegiatanController::class, 'getImage']);

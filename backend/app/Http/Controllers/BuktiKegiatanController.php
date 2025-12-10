@@ -24,57 +24,67 @@ class BuktiKegiatanController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * Menyimpan file gambar sebagai BLOB di database
      */
     public function store(Request $request)
     {
-        // Check if Bukti_Foto is a file or string
         $isFile = $request->hasFile('Bukti_Foto');
-        $isString = $request->has('Bukti_Foto') && is_string($request->input('Bukti_Foto'));
 
         $validationRules = [
-            'Id_Kegiatan' => 'required|exists:kegiatans,Id_Kegiatan',
-            'Id_User' => 'required|exists:users,Id_User|unique:bukti_kegiatans,Id_User',
+            'Id_Kegiatan' => [
+                'required',
+                Rule::exists('kegiatans', 'Id_Kegiatan')
+            ],
+            'Id_User' => [
+                'required',
+                Rule::exists('users', 'Id_User'),
+                Rule::unique('bukti_kegiatans', 'Id_User')
+            ],
         ];
 
-        // Only validate as image if it's a file upload
-        if ($isFile) {
-            $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
-        } else {
-            $validationRules['Bukti_Foto'] = 'required|string';
-        }
+        // Bukti_Foto harus berupa file gambar
+        $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
 
         $request->validate($validationRules, [
             'Id_User.unique' => 'User ini sudah pernah mengirim bukti kegiatan. Satu user hanya boleh mengirim 1 bukti.',
+            'Bukti_Foto.required' => 'Anda harus mengirim file gambar',
+            'Bukti_Foto.image' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.mimes' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.max' => 'Ukuran gambar tidak boleh lebih dari 5MB',
         ]);
 
-        // Handle file upload or string path
-        $fotoPath = null;
-        if ($isFile) {
-            $file = $request->file('Bukti_Foto');
-            $fotoPath = $file->store('bukti_kegiatans', 'public');
-        } elseif ($isString) {
-            $fotoPath = $request->input('Bukti_Foto');
-        }
-
-        if (!$fotoPath) {
+        if (!$isFile) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bukti_Foto is required (file or string path)'
+                'message' => 'Anda harus mengirim file gambar'
             ], 422);
         }
+
+        // Baca file sebagai binary data (BLOB)
+        $file = $request->file('Bukti_Foto');
+        $fileBinary = file_get_contents($file->getRealPath());
+        $mimeType = $file->getClientMimeType();
 
         $data = [
             'Id_Kegiatan' => $request->input('Id_Kegiatan'),
             'Id_User' => $request->input('Id_User'),
-            'Bukti_Foto' => $fotoPath
+            'Bukti_Foto' => $fileBinary,
+            'mime_type' => $mimeType
         ];
 
         $buktiKegiatan = BuktiKegiatan::create($data);
+        
+        // Return tanpa BLOB (karena BLOB tidak perlu di-return dalam JSON)
         $buktiKegiatan->load(['kegiatan', 'user']);
+        
+        // Clone model dan hapus Bukti_Foto untuk response
+        $response = $buktiKegiatan->toArray();
+        unset($response['Bukti_Foto']);
+        
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil ditambah',
-            'data' => $buktiKegiatan
+            'data' => array_merge($response, ['mime_type' => $mimeType])
         ], 201);
     }
 
@@ -84,10 +94,34 @@ class BuktiKegiatanController extends Controller
     public function show(BuktiKegiatan $buktiKegiatan)
     {
         $buktiKegiatan->load(['kegiatan', 'user']);
+        
+        // Clone dan hapus BLOB dari response JSON
+        $data = $buktiKegiatan->toArray();
+        unset($data['Bukti_Foto']);
+        
         return response()->json([
             'success' => true,
-            'data' => $buktiKegiatan
+            'data' => $data
         ]);
+    }
+
+    /**
+     * Get image dari BLOB dan return sebagai image response
+     */
+    public function getImage($id)
+    {
+        $buktiKegiatan = BuktiKegiatan::find($id);
+        
+        if (!$buktiKegiatan || !$buktiKegiatan->Bukti_Foto) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bukti Kegiatan atau gambar tidak ditemukan'
+            ], 404);
+        }
+
+        return response($buktiKegiatan->Bukti_Foto, 200)
+            ->header('Content-Type', $buktiKegiatan->mime_type ?? 'image/jpeg')
+            ->header('Content-Disposition', 'inline; filename="bukti-kegiatan-' . $id . '.jpg"');
     }
 
     /**
@@ -95,9 +129,7 @@ class BuktiKegiatanController extends Controller
      */
     public function update(Request $request, BuktiKegiatan $buktiKegiatan)
     {
-        // Check if Bukti_Foto is a file or string
         $isFile = $request->hasFile('Bukti_Foto');
-        $isString = $request->has('Bukti_Foto') && is_string($request->input('Bukti_Foto'));
 
         $validationRules = [
             'Id_Kegiatan' => [
@@ -112,14 +144,17 @@ class BuktiKegiatanController extends Controller
             ],
         ];
 
-        // Only validate as image if it's a file upload
-        if ($isFile) {
-            $validationRules['Bukti_Foto'] = 'sometimes|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
-        } elseif ($isString) {
-            $validationRules['Bukti_Foto'] = 'sometimes|string';
+        // If Bukti_Foto is provided, it must be a file image
+        if ($request->has('Bukti_Foto')) {
+            $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
         }
 
-        $request->validate($validationRules);
+        $request->validate($validationRules, [
+            'Bukti_Foto.required' => 'Anda harus mengirim file gambar',
+            'Bukti_Foto.image' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.mimes' => 'Anda hanya dapat mengirim gambar',
+            'Bukti_Foto.max' => 'Ukuran gambar tidak boleh lebih dari 5MB',
+        ]);
 
         $data = [];
 
@@ -130,29 +165,27 @@ class BuktiKegiatanController extends Controller
             $data['Id_User'] = $request->input('Id_User');
         }
 
-        // Handle file upload if provided
+        // Handle file upload if provided - simpan sebagai BLOB
         if ($isFile) {
-            // Delete old file if exists
-            if ($buktiKegiatan->Bukti_Foto) {
-                Storage::disk('public')->delete($buktiKegiatan->Bukti_Foto);
-            }
             $file = $request->file('Bukti_Foto');
-            $data['Bukti_Foto'] = $file->store('bukti_kegiatans', 'public');
-        } elseif ($isString) {
-            // Allow string path for testing purposes
-            if ($buktiKegiatan->Bukti_Foto) {
-                Storage::disk('public')->delete($buktiKegiatan->Bukti_Foto);
-            }
-            $data['Bukti_Foto'] = $request->input('Bukti_Foto');
+            $fileBinary = file_get_contents($file->getRealPath());
+            $mimeType = $file->getClientMimeType();
+            
+            $data['Bukti_Foto'] = $fileBinary;
+            $data['mime_type'] = $mimeType;
         }
 
         $buktiKegiatan->update($data);
         $buktiKegiatan->load(['kegiatan', 'user']);
 
+        // Return tanpa BLOB
+        $response = $buktiKegiatan->toArray();
+        unset($response['Bukti_Foto']);
+
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil diperbarui',
-            'data' => $buktiKegiatan
+            'data' => $response
         ]);
     }
 

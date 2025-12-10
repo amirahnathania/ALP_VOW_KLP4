@@ -11,7 +11,7 @@ class Kegiatan extends Model
     
     protected $fillable = [
         'Jenis_Kegiatan',
-        'Id_profil',
+        'Id_Profil',
         'Tanggal',
         'Waktu',
         'Jenis_Pestisida',
@@ -21,6 +21,6 @@ class Kegiatan extends Model
     
 public function profil()
     {
-        return $this->belongsTo(Profil::class, 'Id_profil', 'Id_Profil');
+        return $this->belongsTo(Profil::class,  'Id_Profil');
     }
 }
