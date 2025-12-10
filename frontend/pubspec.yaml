@@ -39,6 +39,8 @@ dependencies:
   image_picker: ^1.0.7
   file_picker: ^8.0.0
   camera: ^0.10.5
+  intl: ^0.19.0
+  table_calendar: ^3.1.2
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +68,7 @@ flutter:
     - assets/BG_Desa_Sengka.jpeg
     - assets/google.jpeg
     - assets/logo.png
+    - "assets/foto pertanian.jpg"
 
   # To add assets to your application, add an assets section, like this:
   # assets:

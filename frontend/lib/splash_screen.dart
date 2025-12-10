@@ -177,7 +177,7 @@ class TrianglePainter extends CustomPainter {
     bottomPath.moveTo(0, size.height + currentOffset); // Bottom-Left
     bottomPath.lineTo(size.width, size.height + currentOffset); // Bottom-Right
     bottomPath.lineTo(centerX, centerY + currentOffset); // Center
-    topPath.close();
+    bottomPath.close();
     canvas.drawPath(bottomPath, paint);
 
     // Left Triangle
