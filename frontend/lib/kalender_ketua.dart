@@ -1,7 +1,5 @@
 // kalender_ketua.dart
 import 'package:flutter/material.dart';
-import 'home_ketua.dart';
-import 'profile_page.dart';
 import 'models/tasks.dart';
 
 // kalender_ketua.dart
@@ -219,10 +217,6 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ],
 
-            const SizedBox(height: 16),
-
-            // Navbar
-            _buildBottomNav(),
             const SizedBox(height: 16),
           ],
         ),
@@ -506,133 +500,6 @@ class _CalendarPageState extends State<CalendarPage> {
         else
           const Expanded(child: SizedBox()),
       ],
-    );
-  }
-
-  /// ================================================================
-  /// NAVIGATION BAR (Disesuaikan dengan gambar - hanya "Kalendar")
-  /// ================================================================
-  /// ================================================================
-  /// NAVIGATION BAR (3 tombol: Kalender kiri, Home tengah, Profil kanan)
-  /// ================================================================
-  Widget _buildBottomNav() {
-    final bool isCalendar = _currentIndex == 0;
-    final bool isHome = _currentIndex == 1;
-    final bool isProfile = _currentIndex == 2;
-
-    // Navbar-only animation handled per-item via AnimatedSlide below.
-
-    Widget buildItem({
-      required bool active,
-      required IconData icon,
-      required VoidCallback onTap,
-    }) {
-      return Expanded(
-        flex: active ? 2 : 1,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(28),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            height: 56,
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF62903A) : Colors.transparent,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: active ? Colors.black87 : Colors.black26,
-                width: active ? 2.0 : 1.0,
-              ),
-              boxShadow: active
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Center(
-              child: Icon(
-                icon,
-                size: active ? 22 : 20,
-                color: active ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF4),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 12,
-            color: Colors.black12.withOpacity(0.15),
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeInOut,
-        offset: isCalendar
-            ? const Offset(-0.06, 0)
-            : isHome
-            ? Offset.zero
-            : const Offset(0.06, 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Left: Calendar (active grows and turns green)
-            buildItem(
-              active: isCalendar,
-              icon: Icons.calendar_today,
-              onTap: () => setState(() => _currentIndex = 0),
-            ),
-
-            const SizedBox(width: 12),
-
-            // Middle: Home (navigate to HomeKetuaPage)
-            buildItem(
-              active: isHome,
-              icon: Icons.home_outlined,
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        HomeKetuaPage(user: widget.user, token: widget.token),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(width: 12),
-
-            // Right: Profile (active grows and turns green)
-            buildItem(
-              active: isProfile,
-              icon: Icons.person_outline,
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        ProfilePage(user: widget.user, token: widget.token),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

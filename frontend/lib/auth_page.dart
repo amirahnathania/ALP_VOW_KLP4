@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'kalender_ketua.dart';
 import 'services/api_service.dart';
-import 'home_ketua.dart';
-// import 'home_page.dart';
+import 'main_layout.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -119,11 +117,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       final token = response['token'];
       final user = response['user'];
       
-      // Navigasi ke HomePage
+      // Navigasi ke MainLayout dengan Smooth Navbar
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => CalendarPage( 
+          builder: (context) => MainLayoutScreen( 
             user: user,
             token: token,
           ),
@@ -173,7 +171,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => CalendarPage(
+          builder: (context) => MainLayoutScreen(
             user: user,
             token: token,
           ),
@@ -249,7 +247,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             children: [
               const SizedBox(height: 40),
               Container(
-                height: 180,  // ← TAMBAHKAN INI (dari 100 jadi 140)
+                height: 250,
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: Image.asset(
                   'assets/logo.png',
