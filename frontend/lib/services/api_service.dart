@@ -3,14 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
-  
+  // For iOS Simulator use 127.0.0.1 or localhost
+  // For Android Emulator use 10.0.2.2
+  // For physical devices, use the actual IP address of your machine
+  static const String baseUrl = 'http://10.136.159.10:8001/api';
+
   // Headers untuk semua request
   static Map<String, String> get headers {
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    return {'Content-Type': 'application/json', 'Accept': 'application/json'};
   }
 
   // ========== REGISTRASI BIASA ==========
@@ -35,7 +35,9 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal');
+        throw Exception(
+          error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal',
+        );
       }
     } catch (error) {
       debugPrint('Register API Error: $error');
@@ -53,10 +55,7 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: headers,
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       print('LOGIN_RESPONSE: ${response.statusCode} - ${response.body}');
@@ -65,7 +64,11 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Login gagal (${response.statusCode})');
+        throw Exception(
+          error['message'] ??
+              error['errors']?.toString() ??
+              'Login gagal (${response.statusCode})',
+        );
       }
     } catch (error) {
       debugPrint('Login API Error: $error');
@@ -75,7 +78,8 @@ class ApiService {
 
   // ========== GOOGLE LOGIN ==========
   static Future<Map<String, dynamic>> loginWithGoogle(
-      Map<String, dynamic> googleData) async {
+    Map<String, dynamic> googleData,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google'),
@@ -102,10 +106,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/user'),
-        headers: {
-          ...headers,
-          'Authorization': 'Bearer $token',
-        },
+        headers: {...headers, 'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -141,7 +142,9 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
       } else {
-        throw Exception('Upload gagal: ${response.statusCode} ${response.body}');
+        throw Exception(
+          'Upload gagal: ${response.statusCode} ${response.body}',
+        );
       }
     } catch (error) {
       debugPrint('Upload Photo API Error: $error');

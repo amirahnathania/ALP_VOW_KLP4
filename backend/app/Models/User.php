@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\Hash;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
-    
+
     protected $primaryKey = 'Id_User';
     protected $table = 'users';
-    
+
     /**
      * Kolom yang bisa diisi mass assignment
      */
@@ -43,21 +43,27 @@ class User extends Authenticatable
     ];
 
     // ========== MUTATORS ==========
-    
+
     // Mutator untuk password hashing
     public function setPasswordAttribute($value)
     {
         if ($value) {
-            $this->attributes['password'] = Hash::make($value);
+            // Only hash if it's not already a bcrypt hash
+            // Bcrypt hashes start with $2y$ and are 60 characters long
+            if (preg_match('/^\$2[ayb]\$.{56}$/', $value)) {
+                $this->attributes['password'] = $value;
+            } else {
+                $this->attributes['password'] = Hash::make($value);
+            }
         }
     }
-    
+
     // Format email ke lowercase saat di-set
     public function setEmailAttribute($value)
     {
         $this->attributes['email'] = strtolower($value);
     }
-    
+
     // Mutator untuk role: auto-set dari domain email jika tidak diset
     public function setRoleAttribute($value)
     {
@@ -66,12 +72,12 @@ class User extends Authenticatable
             $this->attributes['role'] = $value;
             return;
         }
-        
+
         // Jika null, coba hitung dari domain email
         $email = $this->attributes['email'] ?? $this->email;
         if ($email) {
             $domain = substr(strrchr(strtolower($email), "@"), 1);
-            
+
             if ($domain == 'ketua.ac.id') {
                 $this->attributes['role'] = 'ketua';
             } elseif ($domain == 'gapoktan.ac.id') {
@@ -85,13 +91,13 @@ class User extends Authenticatable
     }
 
     // ========== ACCESSORS ==========
-    
+
     // Accessor untuk nama (alias Nama_Pengguna)
     public function getNamaAttribute()
     {
         return $this->Nama_Pengguna;
     }
-    
+
     // Accessor untuk mengambil domain dari email
     public function getEmailDomainAttribute()
     {
@@ -106,21 +112,21 @@ class User extends Authenticatable
         if ($value !== null) {
             return $value;
         }
-        
+
         // Jika null, hitung dari domain email
         $domain = $this->email_domain;
-        
+
         if ($domain == 'ketua.ac.id') {
             return 'ketua';
         } elseif ($domain == 'gapoktan.ac.id') {
             return 'gapoktan';
         }
-        
+
         return null;
     }
 
     // ========== RELATIONS ==========
-    
+
     // Relasi one-to-one dengan Profil
     public function profil()
     {
@@ -133,33 +139,33 @@ class User extends Authenticatable
     }
 
     // ========== SCOPES ==========
-    
+
     // Scope untuk user dengan domain email tertentu
     public function scopeByEmailDomain($query, $domain)
     {
         return $query->where('email', 'LIKE', '%@' . $domain);
     }
-    
+
     // Scope untuk user ketua
     public function scopeKetua($query)
     {
         return $query->where('role', 'ketua')
                     ->orWhere('email', 'LIKE', '%@ketua.ac.id');
     }
-    
+
     // Scope untuk user gapoktan
     public function scopeGapoktan($query)
     {
         return $query->where('role', 'gapoktan')
                     ->orWhere('email', 'LIKE', '%@gapoktan.ac.id');
     }
-    
+
     // Scope untuk user dengan profil
     public function scopeWithProfil($query)
     {
         return $query->whereHas('profil');
     }
-    
+
     // Scope untuk user tanpa profil
     public function scopeWithoutProfil($query)
     {
@@ -167,25 +173,25 @@ class User extends Authenticatable
     }
 
     // ========== HELPER METHODS ==========
-    
+
     // Cek apakah user adalah ketua
     public function isKetua()
     {
         return $this->role === 'ketua';
     }
-    
+
     // Cek apakah user adalah gapoktan
     public function isGapoktan()
     {
         return $this->role === 'gapoktan';
     }
-    
+
     // Cek apakah user sudah memiliki profil
     public function hasProfil()
     {
         return $this->profil !== null;
     }
-    
+
     // Cek apakah email sudah diverifikasi
     public function isEmailVerified()
     {
@@ -193,19 +199,19 @@ class User extends Authenticatable
     }
 
     // ========== AUTHENTICATION METHODS (optional) ==========
-    
+
     // Untuk mendapatkan kolom password
     public function getAuthPassword()
     {
         return $this->password;
     }
-    
+
     // Untuk mendapatkan kolom email untuk password reset
     public function getEmailForPasswordReset()
     {
         return $this->email;
     }
-    
+
     // Nama identifier untuk authentication
     public function getAuthIdentifierName()
     {

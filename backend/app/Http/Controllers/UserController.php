@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -47,7 +48,7 @@ class UserController extends Controller
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
-                    
+
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
@@ -67,18 +68,18 @@ class UserController extends Controller
             'Nama_Pengguna.min' => 'Nama pengguna minimal 3 karakter',
             'Nama_Pengguna.max' => 'Nama pengguna maksimal 50 karakter',
             'Nama_Pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
-            
+
             'email.required' => 'email wajib diisi',
             'email.email' => 'Format email tidak valid',
             'email.max' => 'email maksimal 100 karakter',
             'email.unique' => 'email sudah terdaftar',
-            
+
             'password.required' => 'password wajib diisi',
             'password.min' => 'password minimal 8 karakter',
             'password.max' => 'password maksimal 32 karakter',
             'password.confirmed' => 'Konfirmasi password tidak sesuai',
             'password.regex' => 'password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka',
-            
+
             'password_confirmation.required' => 'Konfirmasi password wajib diisi',
             'password_confirmation.same' => 'Konfirmasi password tidak sesuai'
         ]);
@@ -105,7 +106,7 @@ class UserController extends Controller
                 'token' => $token,
                 'token_type' => 'Bearer',
             ], 201);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -120,7 +121,7 @@ class UserController extends Controller
     {
         try {
             $user = User::with('profil')->find($id);
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -142,7 +143,7 @@ class UserController extends Controller
                 'success' => true,
                 'data' => $userData
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -156,7 +157,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::find($id);
-        
+
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -182,7 +183,7 @@ class UserController extends Controller
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
-                    
+
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
@@ -207,15 +208,15 @@ class UserController extends Controller
 
         try {
             $data = [];
-            
+
             if ($request->has('Nama_Pengguna')) {
                 $data['Nama_Pengguna'] = $validated['Nama_Pengguna'];
             }
-            
+
             if ($request->has('email')) {
                 $data['email'] = $validated['email'];
             }
-            
+
             if ($request->has('password')) {
                 $data['password'] = Hash::make($validated['password']);
             }
@@ -231,7 +232,7 @@ class UserController extends Controller
                     'email' => $user->email
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -246,7 +247,7 @@ class UserController extends Controller
     {
         try {
             $user = User::find($id);
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -267,7 +268,7 @@ class UserController extends Controller
                 'success' => true,
                 'message' => 'Pengguna berhasil dihapus'
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -339,15 +340,15 @@ class UserController extends Controller
                 'token_type' => 'Bearer',
                 'expires_in' => 604800
             ], 200);
-            
+
         } catch (\Exception $e) {
-            \Log::error('Login error: ', [
+            Log::error('Login error: ', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'ip' => $request->ip(),
                 'email' => $request->input('email')
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan pada server'
@@ -360,7 +361,7 @@ class UserController extends Controller
     {
         try {
             $request->user()->currentAccessToken()->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Logout berhasil'
