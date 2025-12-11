@@ -60,15 +60,80 @@ class KegiatanController extends Controller
      */
     public function store(Request $request)
     {
-        $Validated = $request->validate([
+        // Validasi awal
+        $initialValidation = $request->validate([
             'Jenis_Kegiatan' => 'required|string|max:255',
             'Id_Profil' => 'required|exists:profil,Id_Profil',
-            'Tanggal' => 'required|date',
-            'Waktu' => 'required|date_format:H:i:s',
+            'Tanggal_Mulai' => 'required|date',
+            'Tanggal_Selesai' => 'required|date|after_or_equal:Tanggal_Mulai',
+            'Waktu_Mulai' => 'required|date_format:H:i:s',
+            'Waktu_Selesai' => 'required|date_format:H:i:s',
             'Jenis_Pestisida' => 'nullable|string|max:255',
-            'Target_Penanaman' => 'required|integer',
+            'Target_Penanaman' => 'nullable|integer',
             'Keterangan' => 'nullable|string',
         ]);
+
+        // Validasi conditional berdasarkan Jenis_Kegiatan
+        $jenisKegiatan = strtolower(trim($initialValidation['Jenis_Kegiatan']));
+
+        if (strpos($jenisKegiatan, 'penanaman') !== false) {
+            // Jika mengandung "penanaman": Jenis_Pestisida nullable, Target_Penanaman WAJIB
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'required|date',
+                'Tanggal_Selesai' => 'required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'required|date_format:H:i:s',
+                'Waktu_Selesai' => 'required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'nullable|string|max:255',
+                'Target_Penanaman' => 'required|integer|min:1',
+                'Keterangan' => 'nullable|string',
+            ], [
+                'Target_Penanaman.required' => 'Target penanaman harus diisi untuk kegiatan penanaman',
+                'Target_Penanaman.min' => 'Target penanaman minimal 1',
+            ]);
+        } elseif (strpos($jenisKegiatan, 'penyemprotan') !== false) {
+            // Jika mengandung "penyemprotan": Target_Penanaman nullable, Jenis_Pestisida WAJIB
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'required|date',
+                'Tanggal_Selesai' => 'required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'required|date_format:H:i:s',
+                'Waktu_Selesai' => 'required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'required|string|max:255',
+                'Target_Penanaman' => 'nullable|integer',
+                'Keterangan' => 'nullable|string',
+            ], [
+                'Jenis_Pestisida.required' => 'Jenis pestisida harus diisi untuk kegiatan penyemprotan',
+            ]);
+        } elseif (strpos($jenisKegiatan, 'pemupukan') !== false) {
+            // Jika mengandung "pemupukan": Jenis_Pestisida nullable, Target_Penanaman nullable, Keterangan WAJIB
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'required|date',
+                'Tanggal_Selesai' => 'required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'required|date_format:H:i:s',
+                'Waktu_Selesai' => 'required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'nullable|string|max:255',
+                'Target_Penanaman' => 'nullable|integer',
+                'Keterangan' => 'required|string',
+            ], [
+                'Keterangan.required' => 'Keterangan harus diisi untuk kegiatan pemupukan',
+            ]);
+        } else {
+            // Untuk jenis kegiatan lain: kedua field optional
+            $Validated = $initialValidation;
+        }
+
+        // Validasi: Waktu_Mulai dan Waktu_Selesai tidak boleh sama
+        if ($Validated['Waktu_Mulai'] === $Validated['Waktu_Selesai']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Waktu mulai dan waktu selesai tidak boleh sama'
+            ], 422);
+        }
 
         // Validasi jabatan: hanya Ketua Gabungan Kelompok Tani yang dapat membuat kegiatan
         $jabatanValidation = $this->validateProfilIsKetua($Validated['Id_Profil']);
@@ -132,15 +197,78 @@ class KegiatanController extends Controller
             ], 403);
         }
 
-        $Validated = $request->validate([
-            'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
-            'Id_Profil' => 'required|exists:profil,Id_Profil',
-            'Tanggal' => 'sometimes|required|date',
-            'Waktu' => 'sometimes|required|date_format:H:i:s',
-            'Jenis_Pestisida' => 'nullable|string|max:255',
-            'Target_Penanaman' => 'sometimes|required|integer',
-            'Keterangan' => 'nullable|string',
-        ]);
+        // Validasi awal untuk menentukan Jenis_Kegiatan
+        $jenisKegiatan = strtolower(trim($request->input('Jenis_Kegiatan') ?? $kegiatan->Jenis_Kegiatan));
+
+        if (strpos($jenisKegiatan, 'penanaman') !== false) {
+            // Jika mengandung "penanaman": Jenis_Pestisida nullable, Target_Penanaman WAJIB
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'sometimes|required|date',
+                'Tanggal_Selesai' => 'sometimes|required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'sometimes|required|date_format:H:i:s',
+                'Waktu_Selesai' => 'sometimes|required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'nullable|string|max:255',
+                'Target_Penanaman' => 'required|integer|min:1',
+                'Keterangan' => 'nullable|string',
+            ], [
+                'Target_Penanaman.required' => 'Target penanaman harus diisi untuk kegiatan penanaman',
+                'Target_Penanaman.min' => 'Target penanaman minimal 1',
+            ]);
+        } elseif (strpos($jenisKegiatan, 'penyemprotan') !== false) {
+            // Jika mengandung "penyemprotan": Target_Penanaman nullable, Jenis_Pestisida WAJIB
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'sometimes|required|date',
+                'Tanggal_Selesai' => 'sometimes|required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'sometimes|required|date_format:H:i:s',
+                'Waktu_Selesai' => 'sometimes|required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'required|string|max:255',
+                'Target_Penanaman' => 'nullable|integer',
+                'Keterangan' => 'nullable|string',
+            ], [
+                'Jenis_Pestisida.required' => 'Jenis pestisida harus diisi untuk kegiatan penyemprotan',
+            ]);
+        } elseif (strpos($jenisKegiatan, 'pemupukan') !== false) {
+            // Jika mengandung "pemupukan": Jenis_Pestisida nullable, Target_Penanaman nullable, Keterangan WAJIB
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'sometimes|required|date',
+                'Tanggal_Selesai' => 'sometimes|required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'sometimes|required|date_format:H:i:s',
+                'Waktu_Selesai' => 'sometimes|required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'nullable|string|max:255',
+                'Target_Penanaman' => 'nullable|integer',
+                'Keterangan' => 'required|string',
+            ], [
+                'Keterangan.required' => 'Keterangan harus diisi untuk kegiatan pemupukan',
+            ]);
+        } else {
+            // Untuk jenis kegiatan lain: kedua field optional
+            $Validated = $request->validate([
+                'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
+                'Id_Profil' => 'required|exists:profil,Id_Profil',
+                'Tanggal_Mulai' => 'sometimes|required|date',
+                'Tanggal_Selesai' => 'sometimes|required|date|after_or_equal:Tanggal_Mulai',
+                'Waktu_Mulai' => 'sometimes|required|date_format:H:i:s',
+                'Waktu_Selesai' => 'sometimes|required|date_format:H:i:s',
+                'Jenis_Pestisida' => 'nullable|string|max:255',
+                'Target_Penanaman' => 'nullable|integer',
+                'Keterangan' => 'nullable|string',
+            ]);
+        }
+
+        // Validasi: Waktu_Mulai dan Waktu_Selesai tidak boleh sama (jika kedua field ada di request)
+        if (isset($Validated['Waktu_Mulai']) && isset($Validated['Waktu_Selesai']) && 
+            $Validated['Waktu_Mulai'] === $Validated['Waktu_Selesai']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Waktu mulai dan waktu selesai tidak boleh sama'
+            ], 422);
+        }
 
         // Jika Id_Profil diubah, validasi jabatan profil baru
         if (isset($Validated['Id_Profil']) && $Validated['Id_Profil'] !== $kegiatan->Id_Profil) {

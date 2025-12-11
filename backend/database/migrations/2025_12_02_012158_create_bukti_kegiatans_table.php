@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('Id_Kegiatan');
             $table->unsignedBigInteger('Id_User')->unique();  // Unique untuk relasi 1-to-1
-            $table->longBlob('Bukti_Foto');  // BLOB untuk menyimpan data biner file gambar
+            $table->binary('Bukti_Foto');  // BLOB untuk menyimpan data biner file gambar
             $table->string('mime_type')->nullable();  // Menyimpan tipe MIME (image/jpeg, image/png, dll)
             $table->timestamps();
 

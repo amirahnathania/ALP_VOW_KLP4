@@ -12,8 +12,10 @@ class Kegiatan extends Model
     protected $fillable = [
         'Jenis_Kegiatan',
         'Id_Profil',
-        'Tanggal',
-        'Waktu',
+        'Tanggal_Mulai',
+        'Tanggal_Selesai',
+        'Waktu_Mulai',
+        'Waktu_Selesai',
         'Jenis_Pestisida',
         'Target_Penanaman',
         'Keterangan',
