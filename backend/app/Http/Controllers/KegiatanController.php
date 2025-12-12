@@ -63,12 +63,22 @@ class KegiatanController extends Controller
         $Validated = $request->validate([
             'Jenis_Kegiatan' => 'required|string|max:255',
             'Id_Profil' => 'required|exists:profil,Id_Profil',
-            'Tanggal' => 'required|date',
-            'Waktu' => 'required|date_format:H:i:s',
+            'Tanggal_Mulai' => 'required|date',
+            'Tanggal_Selesai' => 'required|date',
+            'Waktu_Mulai' => 'required|date_format:H:i:s',
+            'Waktu_Selesai' => 'required|date_format:H:i:s',
             'Jenis_Pestisida' => 'nullable|string|max:255',
             'Target_Penanaman' => 'required|integer',
             'Keterangan' => 'nullable|string',
         ]);
+
+        // Validasi waktu mulai dan waktu selesai tidak boleh sama
+        if ($Validated['Waktu_Mulai'] === $Validated['Waktu_Selesai']) {
+            return response()->json([
+                'success' => false,
+                'message' => 'waktu mulai dan waktu selesai tidak boleh sama'
+            ], 422);
+        }
 
         // Validasi jabatan: hanya Ketua Gabungan Kelompok Tani yang dapat membuat kegiatan
         $jabatanValidation = $this->validateProfilIsKetua($Validated['Id_Profil']);
@@ -135,12 +145,25 @@ class KegiatanController extends Controller
         $Validated = $request->validate([
             'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
             'Id_Profil' => 'required|exists:profil,Id_Profil',
-            'Tanggal' => 'sometimes|required|date',
-            'Waktu' => 'sometimes|required|date_format:H:i:s',
+            'Tanggal_Mulai' => 'sometimes|required|date',
+            'Tanggal_Selesai' => 'sometimes|required|date',
+            'Waktu_Mulai' => 'sometimes|required|date_format:H:i:s',
+            'Waktu_Selesai' => 'sometimes|required|date_format:H:i:s',
             'Jenis_Pestisida' => 'nullable|string|max:255',
             'Target_Penanaman' => 'sometimes|required|integer',
             'Keterangan' => 'nullable|string',
         ]);
+
+        // Validasi waktu mulai dan waktu selesai tidak boleh sama
+        $waktuMulai = $Validated['Waktu_Mulai'] ?? $kegiatan->Waktu_Mulai;
+        $waktuSelesai = $Validated['Waktu_Selesai'] ?? $kegiatan->Waktu_Selesai;
+        
+        if ($waktuMulai === $waktuSelesai) {
+            return response()->json([
+                'success' => false,
+                'message' => 'waktu mulai dan waktu selesai tidak boleh sama'
+            ], 422);
+        }
 
         // Jika Id_Profil diubah, validasi jabatan profil baru
         if (isset($Validated['Id_Profil']) && $Validated['Id_Profil'] !== $kegiatan->Id_Profil) {
