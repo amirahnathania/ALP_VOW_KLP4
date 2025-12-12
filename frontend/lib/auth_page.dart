@@ -213,7 +213,7 @@ class _AuthPageState extends State<AuthPage> {
         _buildLabel("Email"),
         _buildTextField(
           controller: _loginEmailController,
-          hint: "nama@ketua.ac.id atau nama@gapoktan.ac.id",
+          hint: "Masukkan Email",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
           onChanged: (value) {
