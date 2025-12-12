@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:google_sign_in/google_sign_in.dart';
 import 'services/api_service.dart';
 import 'main_layout.dart';
+=======
+import 'services/api_service.dart';
+import 'home_ketua.dart';
+import 'home_gapoktan.dart';
+>>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -10,108 +16,54 @@ class AuthPage extends StatefulWidget {
   State<AuthPage> createState() => _AuthPageState();
 }
 
-class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  
-  // Controller untuk form Daftar
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  
+class _AuthPageState extends State<AuthPage> {
   // Controller untuk form Masuk
   final TextEditingController _loginEmailController = TextEditingController();
   final TextEditingController _loginPasswordController = TextEditingController();
   
   // State variables
   bool _isLoading = false;
-  bool _showPassword = false;
-  bool _showConfirmPassword = false;
   bool _showLoginPassword = false;
-  
-  // Google Sign-In
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  // ================== FUNGSI REGISTRASI BIASA ==================
-  Future<void> _handleRegister() async {
-    // Validasi form
-    if (_nameController.text.isEmpty) {
-      _showError('Nama lengkap harus diisi');
-      return;
+  // Fungsi untuk menentukan role berdasarkan email
+  String _getUserRole(String email) {
+    if (email.endsWith('@ketua.ac.id')) {
+      return 'ketua';
+    } else if (email.endsWith('@gapoktan.ac.id')) {
+      return 'gapoktan';
     }
-    
-    if (!_isValidEmail(_emailController.text)) {
-      _showError('Email tidak valid');
-      return;
-    }
-    
-    if (_passwordController.text.length < 8) {
-      _showError('Kata sandi minimal 8 karakter');
-      return;
-    }
-    
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showError('Konfirmasi kata sandi tidak cocok');
-      return;
-    }
-    
-    setState(() => _isLoading = true);
-    
-    try {
-      // Panggil API registrasi
-      final response = await ApiService.register(
-        name: _nameController.text,
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      
-      // Berhasil registrasi
-      _showSuccess('Registrasi berhasil! Silakan login');
-      
-      // Clear form
-      _nameController.clear();
-      _emailController.clear();
-      _passwordController.clear();
-      _confirmPasswordController.clear();
-      
-      // Switch ke tab Login
-      _tabController.animateTo(1);
-      
-    } catch (error) {
-      _showError('Registrasi gagal: $error');
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    return 'unknown';
   }
 
   // ================== FUNGSI LOGIN BIASA ==================
   Future<void> _handleLogin() async {
-    if (!_isValidEmail(_loginEmailController.text)) {
+    final email = _loginEmailController.text.trim();
+    
+    if (!_isValidEmail(email)) {
       _showError('Email tidak valid');
       return;
     }
     
+    // Validasi domain email
+    final userRole = _getUserRole(email);
+    if (userRole == 'unknown') {
+      _showError('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
+      return;
+    }
+    
     if (_loginPasswordController.text.isEmpty) {
-      _showError('Kata sandi harus diisi');
+      _showError('Password harus diisi');
       return;
     }
     
     setState(() => _isLoading = true);
     
     try {
-      // Panggil API login
-      final response = await ApiService.login(
-        email: _loginEmailController.text,
+      final res = await ApiService.login(
+        email: email,
         password: _loginPasswordController.text,
       );
+<<<<<<< HEAD
       
       // Simpan token dan user data
       final token = response['token'];
@@ -134,18 +86,40 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       setState(() => _isLoading = false);
     }
   }
+=======
+>>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
 
-  // ================== FUNGSI GOOGLE LOGIN ==================
-  Future<void> _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      // 1. Login dengan Google
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        throw Exception('User membatalkan login');
+      if (res['success'] == true) {
+        // Tambahkan role ke data user
+        final userData = Map<String, dynamic>.from(res['data']);
+        userData['role'] = userRole;
+        
+        // Navigasi berdasarkan role
+        if (userRole == 'ketua') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomeKetuaPage(
+                user: userData,
+                token: res['token'],
+              ),
+            ),
+          );
+        } else if (userRole == 'gapoktan') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomePage(
+                user: userData,
+                token: res['token'],
+              ),
+            ),
+          );
+        }
+      } else {
+        _showError(res['message'] ?? "Login gagal");
       }
+<<<<<<< HEAD
       
       // 2. Dapatkan authentication data
       final GoogleSignInAuthentication googleAuth = 
@@ -181,8 +155,14 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     } catch (error) {
       print('Google Login Error: $error');
       _showError('Login dengan Google gagal: $error');
+=======
+    } catch (e) {
+      _showError("Login gagal: $e");
+>>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -196,16 +176,6 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-  
-  void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: const Color(0xFF8BC784),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -247,7 +217,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
             children: [
               const SizedBox(height: 40),
               Container(
+<<<<<<< HEAD
                 height: 250,
+=======
+                height: 180, 
+>>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: Image.asset(
                   'assets/logo.png',
@@ -267,32 +241,30 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                   ),
                   child: Column(
                     children: [
-                      // Tab bar
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: const Color(0xFF4A3F2C),
-                        unselectedLabelColor: Colors.brown[300],
-                        indicatorColor: const Color(0xFF4A3F2C),
-                        labelStyle: const TextStyle(
+                      const Text(
+                        "Selamat Datang",
+                        style: TextStyle(
+                          fontSize: 30,
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                          color: Color(0xFF4A3F2C),
                         ),
-                        tabs: const [
-                          Tab(text: "Daftar"),
-                          Tab(text: "Masuk"),
-                        ],
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      const Text(
+                        "Silakan masuk dengan akun Anda",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
 
                       const SizedBox(height: 25),
 
-                      // Tab content
                       Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            SingleChildScrollView(child: buildRegisterForm()),
-                            SingleChildScrollView(child: buildLoginForm()),
-                          ],
+                        child: SingleChildScrollView(
+                          child: buildLoginForm(),
                         ),
                       ),
                     ],
@@ -300,67 +272,9 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
-    );
-  }
-
-  // ================== FORM DAFTAR ==================
-  Widget buildRegisterForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel("Nama Lengkap"),
-        _buildTextField(
-          controller: _nameController,
-          hint: "Masukkan nama lengkap",
-          icon: Icons.person,
-        ),
-
-        _buildLabel("Email"),
-        _buildTextField(
-          controller: _emailController,
-          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
-          icon: Icons.email,
-          keyboardType: TextInputType.emailAddress,
-        ),
-
-        _buildLabel("Kata Sandi"),
-        _buildPasswordField(
-          controller: _passwordController,
-          hint: "Minimal 8 karakter",
-          isPassword: true,
-          showPassword: _showPassword,
-          onToggleVisibility: () {
-            setState(() => _showPassword = !_showPassword);
-          },
-        ),
-
-        _buildLabel("Konfirmasi Kata Sandi"),
-        _buildPasswordField(
-          controller: _confirmPasswordController,
-          hint: "Ulangi kata sandi",
-          isPassword: true,
-          showPassword: _showConfirmPassword,
-          onToggleVisibility: () {
-            setState(() => _showConfirmPassword = !_showConfirmPassword);
-          },
-        ),
-
-        const SizedBox(height: 30),
-        Center(
-          child: _buildMainButton(
-            text: "Daftar",
-            onPressed: _isLoading ? null : _handleRegister,
-            isLoading: _isLoading,
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        const SizedBox(height: 40),
-      ],
     );
   }
 
@@ -372,9 +286,19 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _buildLabel("Email"),
         _buildTextField(
           controller: _loginEmailController,
-          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
+          hint: "nama@ketua.ac.id atau nama@gapoktan.ac.id",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
+          onChanged: (value) {
+            // Opsional: Berikan visual feedback untuk domain yang valid
+            final email = value.trim();
+            if (email.isNotEmpty) {
+              final role = _getUserRole(email);
+              if (role != 'unknown') {
+                // Bisa tambahkan indikator visual di sini
+              }
+            }
+          },
         ),
 
         _buildLabel("Kata Sandi"),
@@ -398,6 +322,31 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         ),
 
         const SizedBox(height: 20),
+
+        // Informasi domain email
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFF8BC784), size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Gunakan email dengan domain:\n• @ketua.ac.id untuk Ketua Kelompok Tani\n• @gapoktan.ac.id untuk Gabungan Kelompok Tani",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
 
         const SizedBox(height: 40),
       ],
@@ -424,12 +373,14 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     required String hint,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        onChanged: onChanged,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.brown),
           hintText: hint,
@@ -518,13 +469,8 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 }
