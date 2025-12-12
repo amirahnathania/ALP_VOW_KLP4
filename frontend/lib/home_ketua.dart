@@ -18,10 +18,13 @@ class HomeKetuaPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFDF4),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 120), // Space untuk navbar
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
             // Greeting capsule header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -74,26 +77,76 @@ class HomeKetuaPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            // Hero image banner
+            // Widget Prakiraan Cuaca dengan gambar drone
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Image.asset(
-                  'assets/BG_Desa_Sengka.jpeg',
-                  height: 140,
+                borderRadius: BorderRadius.circular(26),
+                child: Container(
                   width: double.infinity,
-                  fit: BoxFit.cover,
+                  height: 160,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/drone agri.jpg'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Perkiraan Cuaca',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              'Kabupaten Gowa',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Text(
+                          '29°C',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 42,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
 
+            const SizedBox(height: 24),
+
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Daftar Tugas ',
+                'Daftar Kegiatan',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -102,11 +155,11 @@ class HomeKetuaPage extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
                 children: [
                   _buildTaskItem(
                     title: 'Pengolahan Tanah',
@@ -116,7 +169,7 @@ class HomeKetuaPage extends StatelessWidget {
                     detail:
                         'Membersihkan lahan, membajak, dan meratakan tanah untuk persiapan tanam.',
                     onCapturePhoto: () async {
-                      final file = await PhotoService.captureOrPick(context);
+                      final file = await PhotoService.captureDirectly();
                       if (file == null) return;
                       const taskId = 'task-1';
                       try {
@@ -128,6 +181,7 @@ class HomeKetuaPage extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Foto berhasil dikirim'),
+                            backgroundColor: Color(0xFF62903A),
                           ),
                         );
                       } catch (e) {
@@ -146,9 +200,9 @@ class HomeKetuaPage extends StatelessWidget {
                     location: '10 Desember 2025',
                     distance: '07:00 - 12:00',
                     detail:
-                        'Penanaman bibit sesuai jarak tanam, penyiraman awal dan pengecekan akar.',
+                        'Menanam bibit padi, jagung, atau tanaman lain sesuai jadwal.',
                     onCapturePhoto: () async {
-                      final file = await PhotoService.captureOrPick(context);
+                      final file = await PhotoService.captureDirectly();
                       if (file == null) return;
                       const taskId = 'task-2';
                       try {
@@ -180,7 +234,7 @@ class HomeKetuaPage extends StatelessWidget {
                     detail:
                         'Penyemprotan hama sesuai dosis anjuran dan pemantauan daun.',
                     onCapturePhoto: () async {
-                      final file = await PhotoService.captureOrPick(context);
+                      final file = await PhotoService.captureDirectly();
                       if (file == null) return;
                       const taskId = 'task-3';
                       try {
@@ -212,7 +266,7 @@ class HomeKetuaPage extends StatelessWidget {
                     detail:
                         'Pemberian pupuk dasar dan susulan sesuai kebutuhan tanaman.',
                     onCapturePhoto: () async {
-                      final file = await PhotoService.captureOrPick(context);
+                      final file = await PhotoService.captureDirectly();
                       if (file == null) return;
                       const taskId = 'task-4';
                       try {
@@ -236,7 +290,9 @@ class HomeKetuaPage extends StatelessWidget {
                 ],
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -270,13 +326,8 @@ Widget _buildTaskItem({
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 title,
@@ -288,6 +339,7 @@ Widget _buildTaskItem({
                 ),
               ),
             ),
+            const SizedBox(width: 12),
             TextButton.icon(
               onPressed: onCapturePhoto,
               icon: const Icon(
@@ -354,6 +406,7 @@ Widget _buildTaskItem({
 }
 
 /// Card khusus untuk aksi "Kirim Foto"
+// ignore: unused_element
 Widget _buildSendPhotoCard(BuildContext context) {
   return Container(
     decoration: BoxDecoration(
@@ -384,7 +437,7 @@ Widget _buildSendPhotoCard(BuildContext context) {
           children: [
             OutlinedButton.icon(
               onPressed: () async {
-                final file = await PhotoService.captureOrPick(context);
+                final file = await PhotoService.captureDirectly();
                 if (file == null) return;
                 const token = 'YOUR_TOKEN_HERE';
                 const taskId = 'quick-send';

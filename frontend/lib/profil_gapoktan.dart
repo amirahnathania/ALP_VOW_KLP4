@@ -15,28 +15,43 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF62903A) : Colors.transparent,
-            borderRadius: BorderRadius.circular(40),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: isActive ? Colors.white : Colors.black),
-              const SizedBox(height: 4),
+    const activeColor = Color(0xFF4C7B0F); // Hijau tua konsisten
+    const inactiveColor = Colors.transparent;
+    const fgColorActive = Colors.white;
+    const fgColorInactive = Colors.black87;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutQuart,
+        padding: isActive
+            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : inactiveColor,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? fgColorActive : fgColorInactive,
+              size: 26,
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
-                  color: isActive ? Colors.white : Colors.black,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                style: const TextStyle(
+                  color: fgColorActive,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
                 ),
               ),
-            ],
-          ),
+            ]
+          ],
         ),
       ),
     );
@@ -146,6 +161,7 @@ class _ProfileItem {
   final String value;
 }
 
+// ignore: unused_element
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({required this.item});
 
@@ -173,16 +189,15 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _EditableProfileField extends StatelessWidget {
   const _EditableProfileField({
     required this.label,
     required this.value,
-    this.onEdit,
   });
 
   final String label;
   final String value;
-  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -214,37 +229,6 @@ class _EditableProfileField extends StatelessWidget {
               ],
             ),
           ),
-          if (onEdit != null)
-            Positioned(
-              bottom: 8,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x1F000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.edit,
-                  size: 16,
-                  color: Color(0xFF7B5B18),
-                ),
-              ),
-            ),
-          if (onEdit != null)
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(borderRadius: borderRadius, onTap: onEdit),
-              ),
-            ),
         ],
       ),
     );

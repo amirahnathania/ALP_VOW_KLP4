@@ -1,21 +1,75 @@
 part of 'home_gapoktan.dart';
 
 mixin _HomeModalsMixin on _HomePageStateBase {
+  // Data dummy untuk dropdown
+  final List<String> _jenisKegiatanOptions = [
+    'Penanaman Padi',
+    'Penanaman Jagung',
+    'Penanaman Kedelai',
+    'Pemupukan',
+    'Penyemprotan',
+    'Panen',
+    'Pengairan',
+  ];
+  
+  final List<String> _jenisPestisidaOptions = [
+    'Pestisida Organik',
+    'Pestisida Kimia Tipe A',
+    'Pestisida Kimia Tipe B',
+    'Fungisida',
+    'Herbisida',
+    'Insektisida',
+    'Tidak Menggunakan Pestisida',
+  ];
+  
+  final List<String> _targetPenanamanOptions = [
+    '100 - 500 kg',
+    '500 - 1000 kg',
+    '1000 - 2000 kg',
+    '2000 - 5000 kg',
+    'Lebih dari 5000 kg',
+  ];
+  
+  final List<String> _keteranganOptions = [
+    'Kegiatan rutin',
+    'Kegiatan musiman',
+    'Kegiatan khusus',
+    'Program pemerintah',
+    'Kerjasama kelompok tani',
+    'Pelatihan dan pendampingan',
+  ];
+
   @override
   Future<void> _openEventForm({Kegiatan? existing}) async {
+    final result = await Navigator.push<Kegiatan>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddKegiatanScreen(existingKegiatan: existing),
+      ),
+    );
+    
+    if (result == null || !mounted) return;
+    
+    setState(() {
+      final idx = _kegiatan.indexWhere((k) => k.id == result.id);
+      if (idx >= 0) {
+        _kegiatan[idx] = result;
+      } else {
+        _kegiatan.insert(0, result);
+      }
+      _colorFor(result);
+      _reindexEvents();
+    });
+    return;
+    
+    // OLD CODE - Keep for reference but unused
     final formKey = GlobalKey<FormState>();
-    final keteranganController = TextEditingController(
-      text: existing?.keterangan ?? '',
-    );
-    final jenisController = TextEditingController(
-      text: existing?.jenisPenanaman ?? '',
-    );
-    final pestisidaController = TextEditingController(
-      text: existing?.jenisPestisida ?? '',
-    );
-    final targetController = TextEditingController(
-      text: existing?.targetPenanaman ?? '',
-    );
+    
+    String? selectedJenisKegiatan = existing?.jenisPenanaman;
+    String? selectedPestisida = existing?.jenisPestisida;
+    String? selectedTarget = existing?.targetPenanaman;
+    String? selectedKeterangan = existing?.keterangan;
+    
     DateTimeRange? range = existing != null
         ? DateTimeRange(start: existing.startDate, end: existing.endDate)
         : null;
@@ -90,9 +144,13 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            _buildInput(
+                            _buildDropdown(
                               label: 'Jenis Kegiatan',
-                              controller: jenisController,
+                              value: selectedJenisKegiatan,
+                              items: _jenisKegiatanOptions,
+                              onChanged: (value) {
+                                setSheetState(() => selectedJenisKegiatan = value);
+                              },
                             ),
                             GestureDetector(
                               onTap: () async {
@@ -196,17 +254,29 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            _buildInput(
+                            _buildDropdown(
                               label: 'Jenis Pestisida',
-                              controller: pestisidaController,
+                              value: selectedPestisida,
+                              items: _jenisPestisidaOptions,
+                              onChanged: (value) {
+                                setSheetState(() => selectedPestisida = value);
+                              },
                             ),
-                            _buildInput(
+                            _buildDropdown(
                               label: 'Target Penanaman',
-                              controller: targetController,
+                              value: selectedTarget,
+                              items: _targetPenanamanOptions,
+                              onChanged: (value) {
+                                setSheetState(() => selectedTarget = value);
+                              },
                             ),
-                            _buildInput(
+                            _buildDropdown(
                               label: 'Keterangan',
-                              controller: keteranganController,
+                              value: selectedKeterangan,
+                              items: _keteranganOptions,
+                              onChanged: (value) {
+                                setSheetState(() => selectedKeterangan = value);
+                              },
                             ),
                             if (overlapWarning)
                               Container(
@@ -249,6 +319,19 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                   );
                                   return;
                                 }
+                                if (selectedJenisKegiatan == null ||
+                                    selectedPestisida == null ||
+                                    selectedTarget == null ||
+                                    selectedKeterangan == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Semua field dropdown wajib diisi',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
                                 if (!isEndAfterStart(
                                   waktuMulai!,
                                   waktuSelesai!,
@@ -268,14 +351,14 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                       existing?.id ??
                                       DateTime.now().millisecondsSinceEpoch
                                           .toString(),
-                                  keterangan: keteranganController.text,
-                                  jenisPenanaman: jenisController.text,
+                                  keterangan: selectedKeterangan!,
+                                  jenisPenanaman: selectedJenisKegiatan!,
                                   startDate: currentRange.start,
                                   endDate: currentRange.end,
                                   waktuMulai: waktuMulai!,
                                   waktuSelesai: waktuSelesai!,
-                                  jenisPestisida: pestisidaController.text,
-                                  targetPenanaman: targetController.text,
+                                  jenisPestisida: selectedPestisida!,
+                                  targetPenanaman: selectedTarget!,
                                   buktiFoto: existing?.buktiFoto,
                                 );
                                 if (!mounted) return;
@@ -314,6 +397,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
     );
   }
 
+  // ignore: unused_element
   Widget _buildInput({
     required String label,
     required TextEditingController controller,
@@ -339,6 +423,48 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                 borderSide: BorderSide.none,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            value: value,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFFF7F7F5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            hint: Text('Pilih $label'),
+            items: items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              );
+            }).toList(),
+            onChanged: onChanged,
+            validator: (value) => value == null ? 'Wajib diisi' : null,
           ),
         ],
       ),
@@ -456,6 +582,8 @@ mixin _HomeModalsMixin on _HomePageStateBase {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
         return FractionallySizedBox(
           heightFactor: 0.95,
           child: Container(
@@ -566,7 +694,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                       if (kegiatan.buktiFoto.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         const Text(
-                          'Pengambil Bukti Foto',
+                          'Bukti Foto Kegiatan',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -574,13 +702,99 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _buildAvatarStack(
-                          kegiatan,
-                          size: 42,
-                          alignment: Alignment.centerLeft,
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                          itemCount: kegiatan.buktiFoto.length,
+                          itemBuilder: (context, index) {
+                            final foto = kegiatan.buktiFoto[index];
+                            final isRemote = _isRemoteImage(foto.imagePath);
+                            return GestureDetector(
+                              onTap: () {
+                                // Tampilkan foto fullscreen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => _ImagePreviewScreen(
+                                      path: foto.imagePath,
+                                      isRemote: isRemote,
+                                      title: 'Bukti Foto ${index + 1}',
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: isRemote
+                                    ? Image.network(
+                                        foto.imagePath,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stack) {
+                                          return Container(
+                                            color: Colors.grey[300],
+                                            child: const Icon(Icons.error),
+                                          );
+                                        },
+                                      )
+                                    : File(foto.imagePath).existsSync()
+                                        ? Image.file(
+                                            File(foto.imagePath),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            color: Colors.grey[300],
+                                            child: const Icon(Icons.image),
+                                          ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                       const SizedBox(height: 16),
+                      // Tombol Ambil Foto
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final file = await PhotoService.captureDirectly();
+                          if (file != null && mounted) {
+                            setState(() {
+                              kegiatan.buktiFoto.add(
+                                PhotoEvidence(
+                                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                                  imagePath: file.path,
+                                  uploaderName: 'User',
+                                  uploaderRole: 'Gapoktan',
+                                  uploaderEmail: widget.user['email'] ?? '',
+                                  uploadedAt: DateTime.now(),
+                                ),
+                              );
+                            });
+                            Navigator.pop(context); // Tutup modal
+                            _showDetail(kegiatan); // Buka kembali dengan data baru
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Foto berhasil ditambahkan'),
+                                backgroundColor: Color(0xFF62903A),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Ambil Foto'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: accent,
+                          side: BorderSide(color: accent),
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       FilledButton(
                         style: FilledButton.styleFrom(
                           backgroundColor: accent,
@@ -595,6 +809,8 @@ mixin _HomeModalsMixin on _HomePageStateBase {
               ),
             ),
           ),
+        );
+          },
         );
       },
     );

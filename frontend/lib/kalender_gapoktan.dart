@@ -3,45 +3,49 @@ part of 'home_gapoktan.dart';
 mixin _HomeSectionsMixin on _HomePageStateBase {
   Widget _buildNavbar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F1D8),
-          border: Border.all(color: const Color(0xFFF5F1D8), width: 2),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: _withOpacity(Colors.black, 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _NavButton(
-              icon: Icons.calendar_month,
-              label: 'Kalender',
-              isActive: _activeSection == HomeSection.calendar,
-              onTap: () =>
-                  setState(() => _activeSection = HomeSection.calendar),
-            ),
-            _NavButton(
-              icon: Icons.home,
-              label: 'Dashboard',
-              isActive: _activeSection == HomeSection.dashboard,
-              onTap: () =>
-                  setState(() => _activeSection = HomeSection.dashboard),
-            ),
-            _NavButton(
-              icon: Icons.person,
-              label: 'Profil',
-              isActive: _activeSection == HomeSection.profile,
-              onTap: () => setState(() => _activeSection = HomeSection.profile),
-            ),
-          ],
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+      child: Center(
+        child: Container(
+          height: 70,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F0E0), // Warna cream konsisten
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _NavButton(
+                icon: Icons.calendar_today_rounded,
+                label: 'Kalendar',
+                isActive: _activeSection == HomeSection.calendar,
+                onTap: () =>
+                    setState(() => _activeSection = HomeSection.calendar),
+              ),
+              const SizedBox(width: 8),
+              _NavButton(
+                icon: Icons.home_rounded,
+                label: 'Dashboard',
+                isActive: _activeSection == HomeSection.dashboard,
+                onTap: () =>
+                    setState(() => _activeSection = HomeSection.dashboard),
+              ),
+              const SizedBox(width: 8),
+              _NavButton(
+                icon: Icons.person_rounded,
+                label: 'Profil',
+                isActive: _activeSection == HomeSection.profile,
+                onTap: () => setState(() => _activeSection = HomeSection.profile),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -65,104 +69,104 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 16,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: _withOpacity(_primaryGray, 0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: _withOpacity(Colors.black, 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildCalendarHeader(),
+                const SizedBox(height: 8),
+                TableCalendar<Kegiatan>(
+                  locale: 'id',
+                  firstDay: DateTime.utc(2018, 1, 1),
+                  lastDay: DateTime.utc(2035, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) =>
+                      isSameDay(_selectedDay, day),
+                  calendarFormat: _calendarFormat,
+                  availableCalendarFormats: const {
+                    CalendarFormat.month: 'Bulan',
+                    CalendarFormat.twoWeeks: '2 Pekan',
+                    CalendarFormat.week: 'Pekan',
+                  },
+                  eventLoader: _eventsOfDay,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  headerVisible: false,
+                  calendarStyle: CalendarStyle(
+                    outsideDaysVisible: false,
+                    selectedDecoration: BoxDecoration(
+                      border: Border.all(color: _primaryBrown, width: 2),
+                      shape: BoxShape.circle,
+                    ),
+                    todayDecoration: BoxDecoration(
+                      color: _primaryGreen.withOpacity(0.15),
+                      border: Border.all(color: _primaryGreen, width: 2),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  calendarBuilders: CalendarBuilders(
+                    defaultBuilder: (context, day, focusedDay) =>
+                        _buildDayCell(day),
+                    todayBuilder: (context, day, focusedDay) =>
+                        _buildDayCell(day, highlightToday: true),
+                    selectedBuilder: (context, day, focusedDay) =>
+                        _buildDayCell(day, isSelected: true),
+                  ),
+                  onDaySelected: (selected, focused) {
+                    setState(() {
+                      _selectedDay = selected;
+                      _focusedDay = focused;
+                    });
+                    _openActionsForDay(selected);
+                  },
+                  onPageChanged: (focused) =>
+                      setState(() => _focusedDay = focused),
+                  onFormatChanged: (format) =>
+                      setState(() => _calendarFormat = format),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: _withOpacity(_primaryGray, 0.3)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _withOpacity(Colors.black, 0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildCalendarHeader(),
-                    const SizedBox(height: 8),
-                    TableCalendar<Kegiatan>(
-                      locale: 'id',
-                      firstDay: DateTime.utc(2018, 1, 1),
-                      lastDay: DateTime.utc(2035, 12, 31),
-                      focusedDay: _focusedDay,
-                      selectedDayPredicate: (day) =>
-                          isSameDay(_selectedDay, day),
-                      calendarFormat: _calendarFormat,
-                      availableCalendarFormats: const {
-                        CalendarFormat.month: 'Bulan',
-                        CalendarFormat.twoWeeks: '2 Pekan',
-                        CalendarFormat.week: 'Pekan',
-                      },
-                      eventLoader: _eventsOfDay,
-                      startingDayOfWeek: StartingDayOfWeek.monday,
-                      headerVisible: false,
-                      calendarStyle: CalendarStyle(
-                        outsideDaysVisible: false,
-                        selectedDecoration: BoxDecoration(
-                          border: Border.all(color: _primaryBrown, width: 2),
-                          shape: BoxShape.circle,
-                        ),
-                        todayDecoration: BoxDecoration(
-                          border: Border.all(color: _primaryGreen, width: 2),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      calendarBuilders: CalendarBuilders(
-                        defaultBuilder: (context, day, focusedDay) =>
-                            _buildDayCell(day),
-                        todayBuilder: (context, day, focusedDay) =>
-                            _buildDayCell(day, highlightToday: true),
-                        selectedBuilder: (context, day, focusedDay) =>
-                            _buildDayCell(day, isSelected: true),
-                      ),
-                      onDaySelected: (selected, focused) {
-                        setState(() {
-                          _selectedDay = selected;
-                          _focusedDay = focused;
-                        });
-                        _openActionsForDay(selected);
-                      },
-                      onPageChanged: (focused) =>
-                          setState(() => _focusedDay = focused),
-                      onFormatChanged: (format) =>
-                          setState(() => _calendarFormat = format),
-                    ),
-                  ],
+              Expanded(
+                child: Text(
+                  selectedEvents.isEmpty
+                      ? 'Belum ada kegiatan pada tanggal ini'
+                      : 'Kegiatan pada ${_dateFormatter.format(_selectedDay ?? DateTime.now())}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: selectedEvents.isEmpty ? _primaryGray : _primaryBrown,
+                  ),
                 ),
               ),
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: FloatingActionButton(
-                  heroTag: 'add-kegiatan',
-                  mini: true,
-                  backgroundColor: _navButton,
-                  onPressed: () => _openEventForm(),
-                  child: const Icon(Icons.add, color: Colors.white),
-                ),
+              FloatingActionButton(
+                heroTag: 'add-kegiatan',
+                mini: true,
+                backgroundColor: _navButton,
+                onPressed: () => _openEventForm(),
+                child: const Icon(Icons.add, color: Colors.white, size: 20),
               ),
             ],
-          ),
-          const SizedBox(height: 18),
-          const SizedBox(height: 6),
-          Text(
-            selectedEvents.isEmpty
-                ? 'Belum ada kegiatan pada tanggal ini'
-                : 'Kegiatan pada ${_dateFormatter.format(_selectedDay ?? DateTime.now())}',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: selectedEvents.isEmpty ? _primaryGray : _primaryBrown,
-            ),
           ),
           const SizedBox(height: 12),
           ...selectedEvents.map(_buildEventCard),
@@ -245,18 +249,32 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
         fillColor = colors.first;
       }
     }
-    final decoration = hasEvent
-        ? BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: gradient,
-            color: gradient == null ? fillColor : null,
-            border: isSelected
-                ? Border.all(color: Colors.black, width: 2)
-                : highlightToday
-                ? Border.all(color: _primaryGray, width: 1.2)
-                : null,
-          )
-        : null;
+    
+    BoxDecoration? decoration;
+    if (hasEvent) {
+      decoration = BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: gradient,
+        color: gradient == null ? fillColor : null,
+        border: isSelected
+            ? Border.all(color: Colors.black, width: 2)
+            : highlightToday
+            ? Border.all(color: _primaryGray, width: 1.2)
+            : null,
+      );
+    } else if (highlightToday) {
+      // Tampilkan dekorasi untuk hari ini meskipun tidak ada event
+      decoration = BoxDecoration(
+        shape: BoxShape.circle,
+        color: _primaryGreen.withOpacity(0.15),
+        border: Border.all(color: _primaryGreen, width: 2),
+      );
+    } else if (isSelected) {
+      decoration = BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: _primaryBrown, width: 2),
+      );
+    }
 
     return Center(
       child: Container(
@@ -426,9 +444,11 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
 
   Widget _buildDashboardSection() {
     final sorted = List<Kegiatan>.from(_kegiatan);
-    const farmBackgroundAsset = 'assets/foto pertanian.jpg';
+    const farmBackgroundAsset = 'assets/drone agri.jpg';
     const weatherLocation = 'Kabupaten Gowa';
     const weatherTemperature = '29°C';
+    final now = DateTime.now();
+    final todayStr = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -496,6 +516,7 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
             borderRadius: BorderRadius.circular(26),
             child: Container(
               width: double.infinity,
+              height: 160,
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: const AssetImage(farmBackgroundAsset),
@@ -514,6 +535,7 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
                           'Perkiraan Cuaca',
@@ -529,6 +551,29 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                todayStr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -552,14 +597,18 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text(
-                    'To Do List Kegiatan',
+                    'Daftar Kegiatan',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.add_circle, color: _primaryBrown),
+                  FloatingActionButton(
+                    heroTag: 'add-kegiatan-dashboard',
+                    mini: true,
+                    backgroundColor: _navButton,
                     onPressed: () => _openEventForm(),
+                    child: const Icon(Icons.add, color: Colors.white, size: 20),
                   ),
                 ],
               ),
@@ -699,52 +748,54 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
   }
 
   Widget _buildProfileSection() {
-    final profileItems = [
-      _ProfileItem(label: 'Email', value: _profileEmail),
-      _ProfileItem(
-        label: 'Jabatan',
-        value: widget.user['jabatan'] ?? widget.user['role'] ?? '-',
-      ),
-      _ProfileItem(
-        label: 'Awal Masa Jabatan',
-        value: widget.user['awal_jabatan'] ?? '-',
-      ),
-      _ProfileItem(
-        label: 'Akhir Masa Jabatan',
-        value: widget.user['akhir_jabatan'] ?? '-',
-      ),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 120, left: 20, right: 20, top: 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(
-            onTap: _showProfilePhotoActions,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CircleAvatar(
-                  radius: 52,
-                  backgroundColor: _primaryGreen,
-                  backgroundImage: _profilePhotoPath != null
-                      ? _imageProviderFor(_profilePhotoPath!)
-                      : null,
-                  child: _profilePhotoPath == null
-                      ? Text(
-                          _initialsFor(_profileName),
-                          style: const TextStyle(
-                            fontSize: 32,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
+          // Profile Photo dengan edit button
+          Stack(
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF7B5B18),
+                    width: 3,
+                  ),
                 ),
-                Positioned(
-                  bottom: -2,
-                  right: -2,
+                child: ClipOval(
+                  child: _profilePhotoPath != null
+                      ? (_imageProviderFor(_profilePhotoPath!) != null
+                          ? Image(
+                              image: _imageProviderFor(_profilePhotoPath!)!,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              color: const Color(0xFF7B5B18),
+                              child: const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                            ))
+                      : Container(
+                          color: const Color(0xFF7B5B18),
+                          child: const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _showProfilePhotoActions,
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -753,26 +804,183 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
-                          blurRadius: 6,
+                          blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: Icon(Icons.edit, size: 16, color: _primaryBrown),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      size: 18,
+                      color: Color(0xFF7B5B18),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Info Cards
+          _buildInfoCardGapoktan(
+            label: 'Nama Pengguna',
+            value: _profileName,
+            icon: Icons.person_outline,
+            onTap: _editProfileName, // Hanya nama pengguna yang bisa diedit
+          ),
+          
+          const SizedBox(height: 16),
+          
+          _buildInfoCardGapoktan(
+            label: 'Email',
+            value: _profileEmail,
+            icon: Icons.email_outlined,
+            onTap: null, // Email tidak bisa diedit
+          ),
+          
+          const SizedBox(height: 16),
+          
+          _buildInfoCardGapoktan(
+            label: 'Jabatan',
+            value: widget.user['jabatan'] ?? widget.user['role'] ?? '-',
+            icon: Icons.work_outline,
+            onTap: null,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          _buildInfoCardGapoktan(
+            label: 'Awal Jabatan',
+            value: widget.user['awal_jabatan'] ?? '-',
+            icon: Icons.calendar_today,
+            onTap: null,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          _buildInfoCardGapoktan(
+            label: 'Akhir Jabatan',
+            value: widget.user['akhir_jabatan'] ?? '-',
+            icon: Icons.event,
+            onTap: null,
+          ),
+          
+          const SizedBox(height: 40),
+          
+          // Logout Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                // Logout logic - kembali ke AuthPage
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthPage()),
+                  (route) => false,
+                );
+              },
+              icon: const Icon(Icons.logout, size: 20),
+              label: const Text(
+                'Keluar',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC3545),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildInfoCardGapoktan({
+    required String label,
+    required String value,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F0E0),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF7B5B18),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          _EditableProfileField(
-            label: 'Nama Pengguna',
-            value: _profileName,
-            onEdit: _editProfileName,
-          ),
-          const SizedBox(height: 16),
-          ...profileItems.map((item) => _ProfileCard(item: item)),
-          const Spacer(),
+          if (onTap != null)
+            GestureDetector(
+              onTap: onTap,
+              child: Icon(
+                Icons.edit_outlined,
+                color: Colors.grey.shade400,
+                size: 20,
+              ),
+            ),
         ],
       ),
     );

@@ -17,6 +17,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _logoFadeAnimation;
   late Animation<double> _logoScaleSmallAnimation;
   late Animation<double> _logoScaleLargeAnimation;
+  // ignore: unused_field
   late Animation<double> _screenFadeAnimation;
 
   @override

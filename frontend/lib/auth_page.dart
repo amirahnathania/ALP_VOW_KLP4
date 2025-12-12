@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'services/api_service.dart';
 import 'main_layout.dart';
+import 'home_gapoktan.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -37,7 +38,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 1, vsync: this);
   }
 
   // ================== FUNGSI REGISTRASI BIASA ==================
@@ -67,7 +68,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     
     try {
       // Panggil API registrasi
-      final response = await ApiService.register(
+      await ApiService.register(
         name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
@@ -94,12 +95,16 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   // ================== FUNGSI LOGIN BIASA ==================
   Future<void> _handleLogin() async {
-    if (!_isValidEmail(_loginEmailController.text)) {
-      _showError('Email tidak valid');
+    // Langsung gunakan mock data tanpa validasi ketat
+    final email = _loginEmailController.text.trim().toLowerCase();
+    final password = _loginPasswordController.text.trim();
+    
+    if (email.isEmpty) {
+      _showError('Email harus diisi');
       return;
     }
     
-    if (_loginPasswordController.text.isEmpty) {
+    if (password.isEmpty) {
       _showError('Kata sandi harus diisi');
       return;
     }
@@ -107,26 +112,62 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     setState(() => _isLoading = true);
     
     try {
-      // Panggil API login
-      final response = await ApiService.login(
-        email: _loginEmailController.text,
-        password: _loginPasswordController.text,
-      );
+      Map<String, dynamic> user;
+      String token;
       
-      // Simpan token dan user data
-      final token = response['token'];
-      final user = response['user'];
-      
-      // Navigasi ke MainLayout dengan Smooth Navbar
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MainLayoutScreen( 
-            user: user,
-            token: token,
+      // Mock data berdasarkan email - langsung tanpa try-catch API
+      if (email.contains('@ketua.ac.id')) {
+        user = {
+          'name': 'Demo Ketua',
+          'email': email,
+          'jabatan': 'Ketua',
+          'role': 'ketua',
+          'awal_jabatan': '2022-01-01',
+          'akhir_jabatan': '2026-01-01',
+          'photo': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=60',
+        };
+        token = 'mock-ketua-token-${DateTime.now().millisecondsSinceEpoch}';
+        
+        // Delay sedikit untuk simulasi loading
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Tentukan role dan navigasi
+        final role = _getRoleFromEmail(user['email'] ?? '');
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => _getHomePageForRole(role, user, token),
           ),
-        ),
-      );
+        );
+      } else if (email.contains('@gapoktang.ac.id')) {
+        user = {
+          'name': 'Demo Gapoktan',
+          'email': email,
+          'jabatan': 'Gapoktan',
+          'role': 'gapoktan',
+          'awal_jabatan': '2024-01-01',
+          'akhir_jabatan': '2028-01-01',
+          'lama_jabatan': '11 bulan',
+          'photo': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=60',
+        };
+        token = 'mock-gapoktan-token-${DateTime.now().millisecondsSinceEpoch}';
+        
+        // Delay sedikit untuk simulasi loading
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Tentukan role dan navigasi
+        final role = _getRoleFromEmail(user['email'] ?? '');
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => _getHomePageForRole(role, user, token),
+          ),
+        );
+      } else {
+        _showError('Email harus menggunakan domain @ketua.ac.id atau @gapoktang.ac.id');
+      }
       
     } catch (error) {
       _showError('Login gagal: $error');
@@ -136,6 +177,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
   }
 
   // ================== FUNGSI GOOGLE LOGIN ==================
+  // ignore: unused_element
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     
@@ -168,13 +210,13 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
       final token = apiResponse['token'];
       final user = apiResponse['user'];
       
+      // Tentukan role berdasarkan email
+      final role = _getRoleFromEmail(user['email'] ?? googleUser.email);
+      
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => MainLayoutScreen(
-            user: user,
-            token: token,
-          ),
+          builder: (context) => _getHomePageForRole(role, user, token),
         ),
       );
       
@@ -188,7 +230,28 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
 
   // ================== HELPER FUNCTIONS ==================
   bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+    // Lebih permisif untuk email dengan format @ketua.ac.id dan @gapoktang.ac.id
+    if (email.isEmpty) return false;
+    return email.contains('@') && email.contains('.');
+  }
+  
+  String _getRoleFromEmail(String email) {
+    if (email.toLowerCase().contains('@ketua.ac.id')) {
+      return 'ketua';
+    } else if (email.toLowerCase().contains('@gapoktang.ac.id')) {
+      return 'gapoktan';
+    }
+    return 'unknown';
+  }
+  
+  Widget _getHomePageForRole(String role, Map<String, dynamic> user, String token) {
+    if (role == 'ketua') {
+      return MainLayoutScreen(user: user, token: token);
+    } else if (role == 'gapoktan') {
+      return HomePage(user: user, token: token);
+    }
+    // Default ke ketua jika role tidak dikenali
+    return MainLayoutScreen(user: user, token: token);
   }
   
   void _showError(String message) {
@@ -208,6 +271,125 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         backgroundColor: const Color(0xFF8BC784),
         duration: const Duration(seconds: 3),
       ),
+    );
+  }
+
+  // ================== LUPA SANDI ==================
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.lock_reset, color: Color(0xFF62903A)),
+              SizedBox(width: 10),
+              Text(
+                'Lupa Sandi',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Masukkan email Anda untuk mendapatkan link reset kata sandi.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.email, color: Colors.brown),
+                  hintText: "Email",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF62903A),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (emailController.text.isEmpty) {
+                  Navigator.pop(context);
+                  _showError('Email harus diisi');
+                  return;
+                }
+                
+                if (!_isValidEmail(emailController.text)) {
+                  Navigator.pop(context);
+                  _showError('Email tidak valid');
+                  return;
+                }
+                
+                // Simulasi kirim email reset password
+                Navigator.pop(context);
+                _showSuccess(
+                  'Link reset kata sandi telah dikirim ke ${emailController.text}',
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF62903A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              child: const Text(
+                'Kirim',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -267,32 +449,22 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
                   ),
                   child: Column(
                     children: [
-                      // Tab bar
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: const Color(0xFF4A3F2C),
-                        unselectedLabelColor: Colors.brown[300],
-                        indicatorColor: const Color(0xFF4A3F2C),
-                        labelStyle: const TextStyle(
+                      // Title
+                      const Text(
+                        "Selamat Datang",
+                        style: TextStyle(
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                          color: Color(0xFF4A3F2C),
                         ),
-                        tabs: const [
-                          Tab(text: "Daftar"),
-                          Tab(text: "Masuk"),
-                        ],
                       ),
 
                       const SizedBox(height: 25),
 
-                      // Tab content
+                      // Login form content
                       Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            SingleChildScrollView(child: buildRegisterForm()),
-                            SingleChildScrollView(child: buildLoginForm()),
-                          ],
+                        child: SingleChildScrollView(
+                          child: buildLoginForm(),
                         ),
                       ),
                     ],
@@ -321,7 +493,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _buildLabel("Email"),
         _buildTextField(
           controller: _emailController,
-          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
+          hint: "Masukkan Email",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -372,7 +544,7 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
         _buildLabel("Email"),
         _buildTextField(
           controller: _loginEmailController,
-          hint: "nama@ketua.ac.id/nama@gapoktan.ac.id",
+          hint: "Masukkan Email",
           icon: Icons.email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -388,7 +560,23 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
           },
         ),
 
-        const SizedBox(height: 30),
+        // Lupa Sandi
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _showForgotPasswordDialog,
+            child: const Text(
+              'Lupa Sandi?',
+              style: TextStyle(
+                color: Color(0xFF62903A),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
         Center(
           child: _buildMainButton(
             text: "Masuk",
@@ -495,10 +683,11 @@ class _AuthPageState extends State<AuthPage> with SingleTickerProviderStateMixin
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF8BC784),
+        backgroundColor: const Color(0xFF4C7B0F),
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 0,
       ),
       child: isLoading
           ? const SizedBox(

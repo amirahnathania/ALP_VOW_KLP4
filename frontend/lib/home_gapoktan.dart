@@ -7,6 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'models/kegiatan.dart';
+import 'auth_page.dart';
+import 'add_kegiatan_screen.dart';
+import 'services/photo_service.dart';
 
 part 'kalender_gapoktan.dart';
 part 'home_modals.dart';
@@ -199,6 +202,9 @@ abstract class _HomePageStateBase extends State<HomePage> {
   }
 
   Widget _buildOverflowCircle(int extra, double size) {
+    // Format angka menjadi 2 digit dengan leading zero, contoh: 03+, 05+, 12+
+    final String formattedNumber = extra.toString().padLeft(2, '0');
+    
     return Container(
       width: size,
       height: size,
@@ -209,7 +215,7 @@ abstract class _HomePageStateBase extends State<HomePage> {
       ),
       alignment: Alignment.center,
       child: Text(
-        '+$extra',
+        '$formattedNumber+',
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
@@ -248,6 +254,15 @@ abstract class _HomePageStateBase extends State<HomePage> {
       initialValue: _profileName,
       keyboardType: TextInputType.name,
       onSaved: (value) => _profileName = value,
+    );
+  }
+
+  Future<void> _editProfileEmail() async {
+    await _editProfileField(
+      title: 'Ubah Email',
+      initialValue: _profileEmail,
+      keyboardType: TextInputType.emailAddress,
+      onSaved: (value) => _profileEmail = value,
     );
   }
 

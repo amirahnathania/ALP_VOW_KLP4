@@ -10,6 +10,32 @@ import 'api_service.dart';
 class PhotoService {
   static final ImagePicker _picker = ImagePicker();
 
+  // Langsung buka kamera tanpa dialog konfirmasi
+  static Future<File?> captureDirectly() async {
+    try {
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        final XFile? picked = await _picker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 85,
+        );
+        if (picked == null) return null;
+        return File(picked.path);
+      } else {
+        // Desktop: use file picker
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+        );
+        if (result == null || result.files.isEmpty) return null;
+        final path = result.files.first.path;
+        if (path == null) return null;
+        return File(path);
+      }
+    } catch (e) {
+      debugPrint('Error capturing photo directly: $e');
+      return null;
+    }
+  }
+
   // Attempts to capture a photo from the camera. On desktop (like Windows),
   // falls back to picking an image file from disk.
   static Future<File?> captureOrPick(BuildContext context) async {

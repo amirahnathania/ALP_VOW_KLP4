@@ -1,10 +1,12 @@
 // main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'home_gapoktan.dart';
-import 'home_ketua.dart';
+import 'main_layout.dart';
 import 'splash_screen.dart';
+import 'services/camera_service.dart';
 
 /// Set ke `true` jika ingin langsung membuka versi mock Gapoktan
 /// tanpa melewati Splash/Auth (berguna untuk debugging offline).
@@ -18,6 +20,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id');
   await initializeDateFormatting('id_ID');
+  await initializeCameras(); // Initialize cameras
   runApp(const BelajarTaniApp());
 }
 
@@ -54,6 +57,15 @@ class BelajarTaniApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'BelajarTani',
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('id', 'ID'),
+      ],
+      locale: const Locale('id', 'ID'),
       theme: ThemeData(
         primaryColor: const Color(0xFF8BC784),
         scaffoldBackgroundColor: useMockGapoktan
@@ -63,7 +75,7 @@ class BelajarTaniApp extends StatelessWidget {
       home: useMockGapoktan
           ? HomePage(user: _gapoktanUser, token: _gapoktanToken)
           : useMockKetua
-          ? HomeKetuaPage(user: _ketuaUser, token: _ketuaToken)
+          ? MainLayoutScreen(user: _ketuaUser, token: _ketuaToken)
           : const SplashScreen(),
     );
   }
