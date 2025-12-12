@@ -12,12 +12,30 @@ class Kegiatan extends Model
     protected $fillable = [
         'Jenis_Kegiatan',
         'Id_Profil',
-        'Tanggal',
-        'Waktu',
+        'Tanggal_Mulai',
+        'Tanggal_Selesai',
+        'Waktu_Mulai',
+        'Waktu_Selesai',
         'Jenis_Pestisida',
         'Target_Penanaman',
         'Keterangan',
     ];
+
+    // Validasi sebelum menyimpan
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if ($model->Waktu_Mulai === $model->Waktu_Selesai) {
+                throw new \Exception('waktu mulai dan waktu selesai tidak boleh sama');
+            }
+        });
+
+        static::updating(function ($model) {
+            if ($model->Waktu_Mulai === $model->Waktu_Selesai) {
+                throw new \Exception('waktu mulai dan waktu selesai tidak boleh sama');
+            }
+        });
+    }
     
 public function profil()
     {

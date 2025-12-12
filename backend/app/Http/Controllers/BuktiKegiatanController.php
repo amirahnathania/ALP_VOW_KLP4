@@ -14,7 +14,7 @@ class BuktiKegiatanController extends Controller
      */
     public function index()
     {
-        $buktiKegiatans = BuktiKegiatan::with(['kegiatan', 'user'])->get();
+        $buktiKegiatans = BuktiKegiatan::with(['kegiatan', 'profil'])->get();
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua bukti kegiatan',
@@ -35,10 +35,11 @@ class BuktiKegiatanController extends Controller
                 'required',
                 Rule::exists('kegiatans', 'Id_Kegiatan')
             ],
-            'Id_User' => [
+            'Id_Profil' => [
                 'required',
-                Rule::exists('users', 'Id_User'),
-                Rule::unique('bukti_kegiatans', 'Id_User')
+                Rule::exists('profil', 'Id_Profil'),
+                // Unique per kegiatan, bukan global
+                Rule::unique('bukti_kegiatans', 'Id_Profil')->where('Id_Kegiatan', $request->input('Id_Kegiatan'))
             ],
         ];
 
@@ -46,7 +47,7 @@ class BuktiKegiatanController extends Controller
         $validationRules['Bukti_Foto'] = 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120';
 
         $request->validate($validationRules, [
-            'Id_User.unique' => 'User ini sudah pernah mengirim bukti kegiatan. Satu user hanya boleh mengirim 1 bukti.',
+            'Id_Profil.unique' => 'Profil ini sudah pernah mengirim bukti kegiatan. Satu profil hanya boleh mengirim 1 bukti per kegiatan.',
             'Bukti_Foto.required' => 'Anda harus mengirim file gambar',
             'Bukti_Foto.image' => 'Anda hanya dapat mengirim gambar',
             'Bukti_Foto.mimes' => 'Anda hanya dapat mengirim gambar',
@@ -67,7 +68,7 @@ class BuktiKegiatanController extends Controller
 
         $data = [
             'Id_Kegiatan' => $request->input('Id_Kegiatan'),
-            'Id_User' => $request->input('Id_User'),
+            'Id_Profil' => $request->input('Id_Profil'),
             'Bukti_Foto' => $fileBinary,
             'mime_type' => $mimeType
         ];
@@ -75,7 +76,7 @@ class BuktiKegiatanController extends Controller
         $buktiKegiatan = BuktiKegiatan::create($data);
         
         // Return tanpa BLOB (karena BLOB tidak perlu di-return dalam JSON)
-        $buktiKegiatan->load(['kegiatan', 'user']);
+        $buktiKegiatan->load(['kegiatan', 'profil']);
         
         // Clone model dan hapus Bukti_Foto untuk response
         $response = $buktiKegiatan->toArray();
@@ -84,7 +85,7 @@ class BuktiKegiatanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil ditambah',
-            'data' => array_merge($response, ['mime_type' => $mimeType])
+            'data' => array_merge($response, ['mime_type' => $response['mime_type'] ?? $mimeType])
         ], 201);
     }
 
@@ -93,7 +94,7 @@ class BuktiKegiatanController extends Controller
      */
     public function show(BuktiKegiatan $buktiKegiatan)
     {
-        $buktiKegiatan->load(['kegiatan', 'user']);
+        $buktiKegiatan->load(['kegiatan', 'profil']);
         
         // Clone dan hapus BLOB dari response JSON
         $data = $buktiKegiatan->toArray();
@@ -137,10 +138,10 @@ class BuktiKegiatanController extends Controller
                 'required',
                 Rule::exists('kegiatans', 'Id_Kegiatan')
             ],
-            'Id_User' => [
+            'Id_Profil' => [
                 'sometimes',
                 'required',
-                Rule::exists('users', 'Id_User')
+                Rule::exists('profil', 'Id_Profil')
             ],
         ];
 
@@ -161,8 +162,8 @@ class BuktiKegiatanController extends Controller
         if ($request->has('Id_Kegiatan')) {
             $data['Id_Kegiatan'] = $request->input('Id_Kegiatan');
         }
-        if ($request->has('Id_User')) {
-            $data['Id_User'] = $request->input('Id_User');
+        if ($request->has('Id_Profil')) {
+            $data['Id_Profil'] = $request->input('Id_Profil');
         }
 
         // Handle file upload if provided - simpan sebagai BLOB
@@ -176,7 +177,7 @@ class BuktiKegiatanController extends Controller
         }
 
         $buktiKegiatan->update($data);
-        $buktiKegiatan->load(['kegiatan', 'user']);
+        $buktiKegiatan->load(['kegiatan', 'profil']);
 
         // Return tanpa BLOB
         $response = $buktiKegiatan->toArray();

@@ -11,7 +11,7 @@ class BuktiKegiatan extends Model
 
     protected $fillable = [
         'Id_Kegiatan',
-        'Id_User',
+        'Id_Profil',
         'Bukti_Foto',
         'mime_type',
     ];
@@ -35,10 +35,10 @@ class BuktiKegiatan extends Model
     }
 
     /**
-     * BuktiKegiatan dimiliki oleh 1 User
+     * BuktiKegiatan dimiliki oleh 1 Profil
      */
-    public function user()
+    public function profil()
     {
-        return $this->belongsTo(User::class, 'Id_User');
+        return $this->belongsTo(Profil::class, 'Id_Profil');
     }
 }

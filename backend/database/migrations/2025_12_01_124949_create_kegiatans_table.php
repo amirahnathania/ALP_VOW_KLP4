@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id("Id_Kegiatan");
             $table->string('Jenis_Kegiatan');
             $table->unsignedBigInteger('Id_Profil')->nullable();
-            $table->date('Tanggal');
-            $table->time('Waktu');
+            $table->date('Tanggal_Mulai');
+            $table->date('Tanggal_Selesai');
+            $table->time('Waktu_Mulai');
+            $table->time('Waktu_Selesai');
             $table->string('Jenis_Pestisida')->nullable();
             $table->integer('Target_Penanaman');
             $table->text('Keterangan')->nullable();

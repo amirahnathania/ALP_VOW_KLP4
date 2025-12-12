@@ -15,6 +15,13 @@ Route::get('/test', function () {
 // ========== PUBLIC ROUTES (tanpa auth) ==========
 Route::post('/login', [UserController::class, 'login']);
 Route::post('/users', [UserController::class, 'store']); 
+Route::apiResource('jabatan', JabatanController::class);
+Route::apiResource('profil', ProfilController::class);
+Route::apiResource('kegiatans', KegiatanController::class);
+Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
+    
+// Custom routes untuk BuktiKegiatan
+Route::get('/bukti_kegiatans/{id}/image', [BuktiKegiatanController::class, 'getImage']);
 
 // ========== PROTECTED ROUTES (dengan auth) ==========
 Route::middleware('auth:sanctum')->group(function () {
@@ -27,9 +34,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     
-    // API Resources lainnya
-    Route::apiResource('jabatan', JabatanController::class);
-    Route::apiResource('profil', ProfilController::class);
-    Route::apiResource('kegiatans', KegiatanController::class);
-    Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
 });
