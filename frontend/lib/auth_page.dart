@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
-import 'package:google_sign_in/google_sign_in.dart';
-import 'services/api_service.dart';
-import 'main_layout.dart';
-=======
 import 'services/api_service.dart';
 import 'home_ketua.dart';
 import 'home_gapoktan.dart';
->>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -63,31 +57,6 @@ class _AuthPageState extends State<AuthPage> {
         email: email,
         password: _loginPasswordController.text,
       );
-<<<<<<< HEAD
-      
-      // Simpan token dan user data
-      final token = response['token'];
-      final user = response['user'];
-      
-      // Navigasi ke MainLayout dengan Smooth Navbar
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MainLayoutScreen( 
-            user: user,
-            token: token,
-          ),
-        ),
-      );
-      
-    } catch (error) {
-      _showError('Login gagal: $error');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-=======
->>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
 
       if (res['success'] == true) {
         // Tambahkan role ke data user
@@ -119,41 +88,6 @@ class _AuthPageState extends State<AuthPage> {
       } else {
         _showError(res['message'] ?? "Login gagal");
       }
-      
-      // 2. Dapatkan authentication data
-      final GoogleSignInAuthentication googleAuth = 
-          await googleUser.authentication;
-      
-      // 3. Siapkan data untuk dikirim ke Laravel
-      final googleData = {
-        'id': googleUser.id,
-        'name': googleUser.displayName ?? 'User',
-        'email': googleUser.email,
-        'photo': googleUser.photoUrl,
-        'access_token': googleAuth.accessToken,
-        'id_token': googleAuth.idToken,
-      };
-      
-      // 4. Kirim ke Laravel API
-      final apiResponse = await ApiService.loginWithGoogle(googleData);
-      
-      // 5. Simpan token dan navigasi
-      final token = apiResponse['token'];
-      final user = apiResponse['user'];
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MainLayoutScreen(
-            user: user,
-            token: token,
-          ),
-        ),
-      );
-      
-    } catch (error) {
-      print('Google Login Error: $error');
-      _showError('Login dengan Google gagal: $error');
     } catch (e) {
       _showError("Login gagal: $e");
     } finally {
@@ -214,11 +148,7 @@ class _AuthPageState extends State<AuthPage> {
             children: [
               const SizedBox(height: 40),
               Container(
-<<<<<<< HEAD
-                height: 250,
-=======
                 height: 180, 
->>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: Image.asset(
                   'assets/logo.png',
