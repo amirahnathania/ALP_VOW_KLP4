@@ -1,9 +1,22 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // Gunakan 10.0.2.2 untuk Android Emulator
+  // Gunakan localhost atau 127.0.0.1 untuk iOS Simulator atau web
+  // Gunakan IP address komputer untuk device fisik
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000/api';
+    } else if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8000/api';
+    } else if (Platform.isIOS) {
+      return 'http://localhost:8000/api';
+    }
+    return 'http://localhost:8000/api';
+  }
   
   // Headers untuk semua request
   static Map<String, String> get headers {
@@ -48,7 +61,10 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    print('LOGIN_DEBUG: email=$email, password=$password');
+    debugPrint('=== LOGIN REQUEST ===');
+    debugPrint('URL: $baseUrl/login');
+    debugPrint('Email: $email');
+    
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
@@ -57,16 +73,27 @@ class ApiService {
           'email': email,
           'password': password,
         }),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Koneksi timeout. Pastikan backend Laravel sudah berjalan di port 8000');
+        },
       );
 
-      print('LOGIN_RESPONSE: ${response.statusCode} - ${response.body}');
+      debugPrint('=== LOGIN RESPONSE ===');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Login gagal (${response.statusCode})');
+        throw Exception(error['message'] ?? 'Login gagal');
       }
+    } on SocketException {
+      throw Exception('Tidak dapat terhubung ke server. Pastikan:\n1. Backend Laravel sudah berjalan (php artisan serve)\n2. Gunakan IP yang tepat untuk device fisik');
+    } on http.ClientException {
+      throw Exception('Koneksi gagal. Periksa URL server');
     } catch (error) {
       debugPrint('Login API Error: $error');
       rethrow;
