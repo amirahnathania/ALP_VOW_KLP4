@@ -119,7 +119,6 @@ class _AuthPageState extends State<AuthPage> {
       } else {
         _showError(res['message'] ?? "Login gagal");
       }
-<<<<<<< HEAD
       
       // 2. Dapatkan authentication data
       final GoogleSignInAuthentication googleAuth = 
@@ -155,10 +154,8 @@ class _AuthPageState extends State<AuthPage> {
     } catch (error) {
       print('Google Login Error: $error');
       _showError('Login dengan Google gagal: $error');
-=======
     } catch (e) {
       _showError("Login gagal: $e");
->>>>>>> 458e66668b22db76c629894dcae3a6421a705f4e
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
