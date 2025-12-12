@@ -4,10 +4,13 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl = 'http://10.0.2.2:8000/api';
-
+  
   // Headers untuk semua request
   static Map<String, String> get headers {
-    return {'Content-Type': 'application/json', 'Accept': 'application/json'};
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
   }
 
   // ========== REGISTRASI BIASA ==========
@@ -21,7 +24,7 @@ class ApiService {
         Uri.parse('$baseUrl/users'),
         headers: headers,
         body: jsonEncode({
-          'name': name,
+          'Nama_Pengguna': name,
           'email': email,
           'password': password,
           'password_confirmation': password,
@@ -32,9 +35,7 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(
-          error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal',
-        );
+        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Registrasi gagal');
       }
     } catch (error) {
       debugPrint('Register API Error: $error');
@@ -47,22 +48,24 @@ class ApiService {
     required String email,
     required String password,
   }) async {
+    print('LOGIN_DEBUG: email=$email, password=$password');
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/users/login'),
+        Uri.parse('$baseUrl/login'),
         headers: headers,
         body: jsonEncode({
           'email': email,
           'password': password,
-          'device_name': 'flutter_app',
         }),
       );
+
+      print('LOGIN_RESPONSE: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Login gagal');
+        throw Exception(error['message'] ?? error['errors']?.toString() ?? 'Login gagal (${response.statusCode})');
       }
     } catch (error) {
       debugPrint('Login API Error: $error');
@@ -72,8 +75,7 @@ class ApiService {
 
   // ========== GOOGLE LOGIN ==========
   static Future<Map<String, dynamic>> loginWithGoogle(
-    Map<String, dynamic> googleData,
-  ) async {
+      Map<String, dynamic> googleData) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google'),
@@ -100,7 +102,10 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/user'),
-        headers: {...headers, 'Authorization': 'Bearer $token'},
+        headers: {
+          ...headers,
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {

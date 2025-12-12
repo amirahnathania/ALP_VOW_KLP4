@@ -40,20 +40,20 @@ class UserController extends Controller
                 'max:50',
                 'regex:/^[a-zA-Z\s\.]+$/'
             ],
-            'Email' => [
+            'email' => [
                 'required',
                 'max:100',
-                'unique:users,Email',
+                'unique:users,email',
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
                     
                     if (!in_array($domain, $allowedDomains)) {
-                        $fail('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
+                        $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
                 }
             ],
-            'Kata_Sandi' => [
+            'password' => [
                 'required',
                 'string',
                 'min:8',
@@ -61,33 +61,33 @@ class UserController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/'
             ],
-            'Kata_Sandi_confirmation' => 'required|string|same:Kata_Sandi'
+            'password_confirmation' => 'required|string|same:password'
         ], [
             'Nama_Pengguna.required' => 'Nama pengguna wajib diisi',
             'Nama_Pengguna.min' => 'Nama pengguna minimal 3 karakter',
             'Nama_Pengguna.max' => 'Nama pengguna maksimal 50 karakter',
             'Nama_Pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
             
-            'Email.required' => 'Email wajib diisi',
-            'Email.email' => 'Format email tidak valid',
-            'Email.max' => 'Email maksimal 100 karakter',
-            'Email.unique' => 'Email sudah terdaftar',
+            'email.required' => 'email wajib diisi',
+            'email.email' => 'Format email tidak valid',
+            'email.max' => 'email maksimal 100 karakter',
+            'email.unique' => 'email sudah terdaftar',
             
-            'Kata_Sandi.required' => 'Kata sandi wajib diisi',
-            'Kata_Sandi.min' => 'Kata sandi minimal 8 karakter',
-            'Kata_Sandi.max' => 'Kata sandi maksimal 32 karakter',
-            'Kata_Sandi.confirmed' => 'Konfirmasi kata sandi tidak sesuai',
-            'Kata_Sandi.regex' => 'Kata sandi harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka',
+            'password.required' => 'password wajib diisi',
+            'password.min' => 'password minimal 8 karakter',
+            'password.max' => 'password maksimal 32 karakter',
+            'password.confirmed' => 'Konfirmasi password tidak sesuai',
+            'password.regex' => 'password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka',
             
-            'Kata_Sandi_confirmation.required' => 'Konfirmasi kata sandi wajib diisi',
-            'Kata_Sandi_confirmation.same' => 'Konfirmasi kata sandi tidak sesuai'
+            'password_confirmation.required' => 'Konfirmasi password wajib diisi',
+            'password_confirmation.same' => 'Konfirmasi password tidak sesuai'
         ]);
 
         try {
             $user = User::create([
                 'Nama_Pengguna' => $validated['Nama_Pengguna'],
-                'Email' => $validated['Email'],
-                'Kata_Sandi' => Hash::make($validated['Kata_Sandi']),
+                'email' => $validated['email'],
+                'password' => $validated['password'],
             ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
@@ -98,7 +98,7 @@ class UserController extends Controller
                 'data' => [
                     'id' => $user->Id_User,
                     'nama' => $user->Nama_Pengguna,
-                    'email' => $user->Email,
+                    'email' => $user->email,
                     'role' => $user->role,
                     'created_at' => $user->created_at
                 ],
@@ -131,7 +131,7 @@ class UserController extends Controller
             $userData = [
                 'id' => $user->Id_User,
                 'nama' => $user->Nama_Pengguna,
-                'email' => $user->Email,
+                'email' => $user->email,
                 'email_verified_at' => $user->email_verified_at,
                 'created_at' => $user->created_at,
                 'updated_at' => $user->updated_at,
@@ -173,22 +173,22 @@ class UserController extends Controller
                 'max:50',
                 'regex:/^[a-zA-Z\s\.]+$/'
             ],
-            'Email' => [
+            'email' => [
                 'sometimes',
                 'required',
                 'email',
                 'max:100',
-                Rule::unique('users', 'Email')->ignore($id, 'Id_User'),
+                Rule::unique('users', 'email')->ignore($id, 'Id_User'),
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
                     
                     if (!in_array($domain, $allowedDomains)) {
-                        $fail('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
+                        $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
                 }
             ],
-            'Kata_Sandi' => [
+            'password' => [
                 'sometimes',
                 'required',
                 'string',
@@ -200,9 +200,9 @@ class UserController extends Controller
             'Nama_Pengguna.min' => 'Nama pengguna minimal 3 karakter',
             'Nama_Pengguna.max' => 'Nama pengguna maksimal 50 karakter',
             'Nama_Pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
-            'Kata_Sandi.min' => 'Kata sandi minimal 8 karakter',
-            'Kata_Sandi.max' => 'Kata sandi maksimal 32 karakter',
-            'Kata_Sandi.regex' => 'Kata sandi harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka'
+            'password.min' => 'password minimal 8 karakter',
+            'password.max' => 'password maksimal 32 karakter',
+            'password.regex' => 'password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka'
         ]);
 
         try {
@@ -212,12 +212,12 @@ class UserController extends Controller
                 $data['Nama_Pengguna'] = $validated['Nama_Pengguna'];
             }
             
-            if ($request->has('Email')) {
-                $data['Email'] = $validated['Email'];
+            if ($request->has('email')) {
+                $data['email'] = $validated['email'];
             }
             
-            if ($request->has('Kata_Sandi')) {
-                $data['Kata_Sandi'] = Hash::make($validated['Kata_Sandi']);
+            if ($request->has('password')) {
+                $data['password'] = Hash::make($validated['password']);
             }
 
             $user->update($data);
@@ -228,7 +228,7 @@ class UserController extends Controller
                 'data' => [
                     'id' => $user->Id_User,
                     'nama' => $user->Nama_Pengguna,
-                    'email' => $user->Email
+                    'email' => $user->email
                 ]
             ]);
             
@@ -281,45 +281,51 @@ class UserController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'Email' => [
+            'email' => [
                 'required',
                 'email',
                 'max:100',
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
-                    
                     if (!in_array($domain, $allowedDomains)) {
-                        $fail('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
+                        $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
                 }
             ],
-            'Kata_Sandi' => [
+            'password' => [
                 'required',
                 'string',
                 'min:8',
                 'max:32'
             ]
         ], [
-            'Email.required' => 'Email wajib diisi',
-            'Email.email' => 'Format email tidak valid',
-            'Email.max' => 'Email maksimal 100 karakter',
-            'Kata_Sandi.required' => 'Kata sandi wajib diisi',
-            'Kata_Sandi.min' => 'Kata sandi minimal 8 karakter',
-            'Kata_Sandi.max' => 'Kata sandi maksimal 32 karakter'
+            'email.required' => 'Email wajib diisi',
+            'email.email' => 'Format email tidak valid',
+            'email.max' => 'email maksimal 100 karakter',
+            'password.required' => 'password wajib diisi',
+            'password.min' => 'password minimal 8 karakter',
+            'password.max' => 'password maksimal 32 karakter'
         ]);
 
         try {
-            $user = User::where('Email', $validated['Email'])->first();
+            $user = User::where('email', $validated['email'])->first();
 
-            if (!$user || !Hash::check($validated['Kata_Sandi'], $user->Kata_Sandi)) {
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Email atau kata sandi salah'
+                    'message' => 'email tidak ditemukan'
                 ], 401);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            if (!Hash::check($validated['password'], $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'password salah'
+                ], 401);
+            }
+
+            $token = $user->createToken('auth_token', ['*'], now()->addDays(7))->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -327,17 +333,24 @@ class UserController extends Controller
                 'data' => [
                     'id' => $user->Id_User,
                     'nama' => $user->Nama_Pengguna,
-                    'email' => $user->Email
+                    'email' => $user->email
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer',
-            ]);
+                'expires_in' => 604800
+            ], 200);
             
         } catch (\Exception $e) {
+            \Log::error('Login error: ', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'ip' => $request->ip(),
+                'email' => $request->input('email')
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal login',
-                'error' => $e->getMessage()
+                'message' => 'Terjadi kesalahan pada server'
             ], 500);
         }
     }

@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
     
     protected $primaryKey = 'Id_User';
     protected $table = 'users';
@@ -18,8 +20,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'Nama_Pengguna',
-        'Email',
-        'Kata_Sandi',
+        'email',
+        'password',
         'email_verified_at',
         'remember_token',
         'role',
@@ -27,7 +29,7 @@ class User extends Authenticatable
 
     // Kolom yang disembunyikan dari response
     protected $hidden = [
-        'Kata_Sandi',
+        'password',
         'remember_token',
     ];
 
@@ -40,37 +42,50 @@ class User extends Authenticatable
         'role' => 'string',
     ];
 
-    // ========== AUTHENTICATION METHODS ==========
+    // ========== MUTATORS ==========
     
-    // Untuk mendapatkan kolom password
-    public function getAuthPassword()
+    // Mutator untuk password hashing
+    public function setPasswordAttribute($value)
     {
-        return $this->Kata_Sandi;
+        if ($value) {
+            $this->attributes['password'] = Hash::make($value);
+        }
     }
     
-    // Untuk mendapatkan kolom email untuk password reset
-    public function getEmailForPasswordReset()
+    // Format email ke lowercase saat di-set
+    public function setEmailAttribute($value)
     {
-        return $this->Email;
+        $this->attributes['email'] = strtolower($value);
     }
     
-    // Nama identifier untuk authentication
-    public function getAuthIdentifierName()
+    // Mutator untuk role: auto-set dari domain email jika tidak diset
+    public function setRoleAttribute($value)
     {
-        return 'Email';
-    }
-    
-    // Relasi one-to-one dengan Profil
-    public function profil()
-    {
-        return $this->hasOne(Profil::class, 'Id_User', 'Id_User');
+        // Jika value diberikan, simpan itu
+        if ($value !== null) {
+            $this->attributes['role'] = $value;
+            return;
+        }
+        
+        // Jika null, coba hitung dari domain email
+        $email = $this->attributes['email'] ?? $this->email;
+        if ($email) {
+            $domain = substr(strrchr(strtolower($email), "@"), 1);
+            
+            if ($domain == 'ketua.ac.id') {
+                $this->attributes['role'] = 'ketua';
+            } elseif ($domain == 'gapoktan.ac.id') {
+                $this->attributes['role'] = 'gapoktan';
+            } else {
+                $this->attributes['role'] = null;
+            }
+        } else {
+            $this->attributes['role'] = null;
+        }
     }
 
-    public function buktiKegiatan()
-    {
-        return $this->hasMany(BuktiKegiatan::class, 'Id_User', 'Id_User');
-    }
-  
+    // ========== ACCESSORS ==========
+    
     // Accessor untuk nama (alias Nama_Pengguna)
     public function getNamaAttribute()
     {
@@ -80,7 +95,7 @@ class User extends Authenticatable
     // Accessor untuk mengambil domain dari email
     public function getEmailDomainAttribute()
     {
-        $domain = substr(strrchr($this->Email, "@"), 1);
+        $domain = substr(strrchr($this->email, "@"), 1);
         return $domain;
     }
 
@@ -103,47 +118,55 @@ class User extends Authenticatable
         
         return null;
     }
-    // ========== END ACCESSORS ==========
 
-    // ========== MUTATORS (SETTERS) ==========
+    // ========== RELATIONS ==========
     
-    // Auto-hash password saat di-set
-    public function setKataSandiAttribute($value)
+    // Relasi one-to-one dengan Profil
+    public function profil()
     {
-        $this->attributes['Kata_Sandi'] = bcrypt($value);
+        return $this->hasOne(Profil::class, 'Id_User', 'Id_User');
+    }
+
+    public function buktiKegiatan()
+    {
+        return $this->hasMany(BuktiKegiatan::class, 'Id_User', 'Id_User');
+    }
+
+    // ========== SCOPES ==========
+    
+    // Scope untuk user dengan domain email tertentu
+    public function scopeByEmailDomain($query, $domain)
+    {
+        return $query->where('email', 'LIKE', '%@' . $domain);
     }
     
-    // Format email ke lowercase saat di-set
-    public function setEmailAttribute($value)
+    // Scope untuk user ketua
+    public function scopeKetua($query)
     {
-        $this->attributes['Email'] = strtolower($value);
+        return $query->where('role', 'ketua')
+                    ->orWhere('email', 'LIKE', '%@ketua.ac.id');
     }
     
-    // Mutator untuk role: auto-set dari domain email jika tidak diset
-    public function setRoleAttribute($value)
+    // Scope untuk user gapoktan
+    public function scopeGapoktan($query)
     {
-        // Jika value diberikan, simpan itu
-        if ($value !== null) {
-            $this->attributes['role'] = $value;
-            return;
-        }
-        
-        // Jika null, coba hitung dari domain email
-        $email = $this->attributes['Email'] ?? null;
-        if ($email) {
-            $domain = substr(strrchr($email, "@"), 1);
-            
-            if ($domain == 'ketua.ac.id') {
-                $this->attributes['role'] = 'ketua';
-            } elseif ($domain == 'gapoktan.ac.id') {
-                $this->attributes['role'] = 'gapoktan';
-            } else {
-                $this->attributes['role'] = null;
-            }
-        } else {
-            $this->attributes['role'] = null;
-        }
+        return $query->where('role', 'gapoktan')
+                    ->orWhere('email', 'LIKE', '%@gapoktan.ac.id');
     }
+    
+    // Scope untuk user dengan profil
+    public function scopeWithProfil($query)
+    {
+        return $query->whereHas('profil');
+    }
+    
+    // Scope untuk user tanpa profil
+    public function scopeWithoutProfil($query)
+    {
+        return $query->whereDoesntHave('profil');
+    }
+
+    // ========== HELPER METHODS ==========
     
     // Cek apakah user adalah ketua
     public function isKetua()
@@ -168,79 +191,24 @@ class User extends Authenticatable
     {
         return $this->email_verified_at !== null;
     }
-    
-    // Scope untuk user dengan domain email tertentu
-    public function scopeByEmailDomain($query, $domain)
-    {
-        return $query->where('Email', 'LIKE', '%@' . $domain);
-    }
-    
-    // Scope untuk user ketua
-    public function scopeKetua($query)
-    {
-        return $query->where('role', 'ketua')
-                    ->orWhere('Email', 'LIKE', '%@ketua.ac.id');
-    }
-    
-    // Scope untuk user gapoktan
-    public function scopeGapoktan($query)
-    {
-        return $query->where('role', 'gapoktan')
-                    ->orWhere('Email', 'LIKE', '%@gapoktan.ac.id');
-    }
-    
-    // Scope untuk user dengan profil
-    public function scopeWithProfil($query)
-    {
-        return $query->whereHas('profil');
-    }
-    
-    // Scope untuk user tanpa profil
-    public function scopeWithoutProfil($query)
-    {
-        return $query->whereDoesntHave('profil');
-    }
 
-    //Boot method untuk event handling
-    protected static function boot()
+    // ========== AUTHENTICATION METHODS (optional) ==========
+    
+    // Untuk mendapatkan kolom password
+    public function getAuthPassword()
     {
-        parent::boot();
-        static::creating(function ($user) {
-            $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
-            $domain = substr(strrchr($user->Email, "@"), 1);
-            
-            // Validasi domain email
-            if (!in_array($domain, $allowedDomains)) {
-                throw new \Exception('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
-            }
-            
-            // Auto-set role jika tidak diset
-            if (!isset($user->attributes['role']) || $user->attributes['role'] === null) {
-                if ($domain == 'ketua.ac.id') {
-                    $user->attributes['role'] = 'ketua';
-                } elseif ($domain == 'gapoktan.ac.id') {
-                    $user->attributes['role'] = 'gapoktan';
-                }
-            }
-        });
-
-        static::updating(function ($user) {
-            if ($user->isDirty('Email')) {
-                $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
-                $domain = substr(strrchr($user->Email, "@"), 1);
-                
-                // Validasi domain email baru
-                if (!in_array($domain, $allowedDomains)) {
-                    throw new \Exception('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
-                }
-                
-                // Update role berdasarkan domain baru
-                if ($domain == 'ketua.ac.id') {
-                    $user->attributes['role'] = 'ketua';
-                } elseif ($domain == 'gapoktan.ac.id') {
-                    $user->attributes['role'] = 'gapoktan';
-                }
-            }
-        });
+        return $this->password;
+    }
+    
+    // Untuk mendapatkan kolom email untuk password reset
+    public function getEmailForPasswordReset()
+    {
+        return $this->email;
+    }
+    
+    // Nama identifier untuk authentication
+    public function getAuthIdentifierName()
+    {
+        return 'email';
     }
 }

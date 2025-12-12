@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request; 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\JabatanController;
 use App\Http\Controllers\ProfilController;
@@ -13,14 +12,11 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API is working!']);
 });
 
-// ========== LOGIN ROUTE ==========
-Route::post('/users/login', function (Request $request) {
-    $request->validate([
-        'Email' => 'required|email',
-        'Kata_Sandi' => 'required',
-        'device_name' => 'required',
-    ]);
+// ========== PUBLIC ROUTES (tanpa auth) ==========
+Route::post('/login', [UserController::class, 'login']);
+Route::post('/users', [UserController::class, 'store']); 
 
+<<<<<<< HEAD
     $user = \App\Models\User::where('Email', $request->Email)->first();
 
     if (!$user || !\Illuminate\Support\Facades\Hash::check($request->Kata_Sandi, $user->Kata_Sandi)) {
@@ -52,3 +48,22 @@ Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
 
 // Endpoint khusus untuk menampilkan gambar BLOB
 Route::get('bukti_kegiatans/{id}/image', [BuktiKegiatanController::class, 'getImage']);
+=======
+// ========== PROTECTED ROUTES (dengan auth) ==========
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [UserController::class, 'logout']);
+    
+    // CRUD Users lainnya (GET, PUT, DELETE)
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::patch('/users/{id}', [UserController::class, 'update']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    
+    // API Resources lainnya
+    Route::apiResource('jabatan', JabatanController::class);
+    Route::apiResource('profil', ProfilController::class);
+    Route::apiResource('kegiatans', KegiatanController::class);
+    Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
+});
+>>>>>>> b46c528d3d29d3e02b89606f702d3e03bc2eb3de
