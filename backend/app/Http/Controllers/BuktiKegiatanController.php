@@ -24,10 +24,10 @@ class BuktiKegiatanController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * Menyimpan file gambar sebagai BLOB di database
      */
     public function store(Request $request)
     {
-        // Check if Bukti_Foto is a file or string
         $isFile = $request->hasFile('Bukti_Foto');
 
         $validationRules = [
@@ -53,32 +53,38 @@ class BuktiKegiatanController extends Controller
             'Bukti_Foto.max' => 'Ukuran gambar tidak boleh lebih dari 5MB',
         ]);
 
-        // Handle file upload
-        $fotoPath = null;
-        if ($isFile) {
-            $file = $request->file('Bukti_Foto');
-            $fotoPath = $file->store('bukti_kegiatans', 'public');
-        }
-
-        if (!$fotoPath) {
+        if (!$isFile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda harus mengirim file gambar'
             ], 422);
         }
 
+        // Baca file sebagai binary data (BLOB)
+        $file = $request->file('Bukti_Foto');
+        $fileBinary = file_get_contents($file->getRealPath());
+        $mimeType = $file->getClientMimeType();
+
         $data = [
             'Id_Kegiatan' => $request->input('Id_Kegiatan'),
             'Id_User' => $request->input('Id_User'),
-            'Bukti_Foto' => $fotoPath
+            'Bukti_Foto' => $fileBinary,
+            'mime_type' => $mimeType
         ];
 
         $buktiKegiatan = BuktiKegiatan::create($data);
+        
+        // Return tanpa BLOB (karena BLOB tidak perlu di-return dalam JSON)
         $buktiKegiatan->load(['kegiatan', 'user']);
+        
+        // Clone model dan hapus Bukti_Foto untuk response
+        $response = $buktiKegiatan->toArray();
+        unset($response['Bukti_Foto']);
+        
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil ditambah',
-            'data' => $buktiKegiatan
+            'data' => array_merge($response, ['mime_type' => $mimeType])
         ], 201);
     }
 
@@ -88,10 +94,34 @@ class BuktiKegiatanController extends Controller
     public function show(BuktiKegiatan $buktiKegiatan)
     {
         $buktiKegiatan->load(['kegiatan', 'user']);
+        
+        // Clone dan hapus BLOB dari response JSON
+        $data = $buktiKegiatan->toArray();
+        unset($data['Bukti_Foto']);
+        
         return response()->json([
             'success' => true,
-            'data' => $buktiKegiatan
+            'data' => $data
         ]);
+    }
+
+    /**
+     * Get image dari BLOB dan return sebagai image response
+     */
+    public function getImage($id)
+    {
+        $buktiKegiatan = BuktiKegiatan::find($id);
+        
+        if (!$buktiKegiatan || !$buktiKegiatan->Bukti_Foto) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bukti Kegiatan atau gambar tidak ditemukan'
+            ], 404);
+        }
+
+        return response($buktiKegiatan->Bukti_Foto, 200)
+            ->header('Content-Type', $buktiKegiatan->mime_type ?? 'image/jpeg')
+            ->header('Content-Disposition', 'inline; filename="bukti-kegiatan-' . $id . '.jpg"');
     }
 
     /**
@@ -99,7 +129,6 @@ class BuktiKegiatanController extends Controller
      */
     public function update(Request $request, BuktiKegiatan $buktiKegiatan)
     {
-        // Check if Bukti_Foto is a file
         $isFile = $request->hasFile('Bukti_Foto');
 
         $validationRules = [
@@ -136,23 +165,27 @@ class BuktiKegiatanController extends Controller
             $data['Id_User'] = $request->input('Id_User');
         }
 
-        // Handle file upload if provided
+        // Handle file upload if provided - simpan sebagai BLOB
         if ($isFile) {
-            // Delete old file if exists
-            if ($buktiKegiatan->Bukti_Foto) {
-                Storage::disk('public')->delete($buktiKegiatan->Bukti_Foto);
-            }
             $file = $request->file('Bukti_Foto');
-            $data['Bukti_Foto'] = $file->store('bukti_kegiatans', 'public');
+            $fileBinary = file_get_contents($file->getRealPath());
+            $mimeType = $file->getClientMimeType();
+            
+            $data['Bukti_Foto'] = $fileBinary;
+            $data['mime_type'] = $mimeType;
         }
 
         $buktiKegiatan->update($data);
         $buktiKegiatan->load(['kegiatan', 'user']);
 
+        // Return tanpa BLOB
+        $response = $buktiKegiatan->toArray();
+        unset($response['Bukti_Foto']);
+
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil diperbarui',
-            'data' => $buktiKegiatan
+            'data' => $response
         ]);
     }
 
