@@ -14,7 +14,24 @@ class BuktiKegiatanController extends Controller
      */
     public function index()
     {
-        $buktiKegiatans = BuktiKegiatan::with(['kegiatan', 'profil'])->get();
+        $buktiKegiatans = BuktiKegiatan::with([
+            'profil:Id_Profil,Id_User,Id_jabatan',
+            'profil.user:Id_User,Nama_Pengguna',
+            'profil.jabatan:Id_jabatan,Jabatan'
+        ])->get()
+        ->map(function ($buktiKegiatan) {
+            return [
+                'Id_Bukti_Kegiatan' => $buktiKegiatan->Id_Bukti_Kegiatan,
+                'Id_Kegiatan' => $buktiKegiatan->Id_Kegiatan,
+                'Id_Profil' => $buktiKegiatan->Id_Profil,
+                'mime_type' => $buktiKegiatan->mime_type,
+                'nama_pengguna' => $buktiKegiatan->profil?->user?->Nama_Pengguna,
+                'jabatan' => $buktiKegiatan->profil?->jabatan?->Jabatan,
+                'created_at' => $buktiKegiatan->created_at,
+                'updated_at' => $buktiKegiatan->updated_at,
+            ];
+        });
+        
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua bukti kegiatan',
@@ -76,16 +93,19 @@ class BuktiKegiatanController extends Controller
         $buktiKegiatan = BuktiKegiatan::create($data);
         
         // Return tanpa BLOB (karena BLOB tidak perlu di-return dalam JSON)
-        $buktiKegiatan->load(['kegiatan', 'profil']);
+        $buktiKegiatan->load(['kegiatan', 'profil.user', 'profil.jabatan']);
         
-        // Clone model dan hapus Bukti_Foto untuk response
+        // Hapus BLOB sebelum convert ke array
+        $buktiKegiatan->Bukti_Foto = null;
+        
+        // Convert ke array dan hapus field yang tidak perlu
         $response = $buktiKegiatan->toArray();
         unset($response['Bukti_Foto']);
         
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil ditambah',
-            'data' => array_merge($response, ['mime_type' => $response['mime_type'] ?? $mimeType])
+            'data' => $response
         ], 201);
     }
 
@@ -94,11 +114,22 @@ class BuktiKegiatanController extends Controller
      */
     public function show(BuktiKegiatan $buktiKegiatan)
     {
-        $buktiKegiatan->load(['kegiatan', 'profil']);
+        $buktiKegiatan->load([
+            'profil:Id_Profil,Id_User,Id_jabatan',
+            'profil.user:Id_User,Nama_Pengguna',
+            'profil.jabatan:Id_jabatan,Jabatan'
+        ]);
         
-        // Clone dan hapus BLOB dari response JSON
-        $data = $buktiKegiatan->toArray();
-        unset($data['Bukti_Foto']);
+        $data = [
+            'Id_Bukti_Kegiatan' => $buktiKegiatan->Id_Bukti_Kegiatan,
+            'Id_Kegiatan' => $buktiKegiatan->Id_Kegiatan,
+            'Id_Profil' => $buktiKegiatan->Id_Profil,
+            'mime_type' => $buktiKegiatan->mime_type,
+            'nama_pengguna' => $buktiKegiatan->profil?->user?->Nama_Pengguna,
+            'jabatan' => $buktiKegiatan->profil?->jabatan?->Jabatan,
+            'created_at' => $buktiKegiatan->created_at,
+            'updated_at' => $buktiKegiatan->updated_at,
+        ];
         
         return response()->json([
             'success' => true,
@@ -177,16 +208,15 @@ class BuktiKegiatanController extends Controller
         }
 
         $buktiKegiatan->update($data);
-        $buktiKegiatan->load(['kegiatan', 'profil']);
+        $buktiKegiatan->load(['kegiatan', 'profil.user', 'profil.jabatan']);
 
-        // Return tanpa BLOB
-        $response = $buktiKegiatan->toArray();
-        unset($response['Bukti_Foto']);
+        // Set BLOB ke null sebelum return
+        $buktiKegiatan->Bukti_Foto = null;
 
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil diperbarui',
-            'data' => $response
+            'data' => $buktiKegiatan
         ]);
     }
 

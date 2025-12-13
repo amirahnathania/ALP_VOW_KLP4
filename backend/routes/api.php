@@ -23,6 +23,9 @@ Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
 // Custom routes untuk BuktiKegiatan
 Route::get('/bukti_kegiatans/{id}/image', [BuktiKegiatanController::class, 'getImage']);
 
+// Custom routes untuk Kegiatan
+Route::get('/kegiatans/{id}/persentase-bukti', [KegiatanController::class, 'getPersentaseBukti']);
+
 // ========== PROTECTED ROUTES (dengan auth) ==========
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [UserController::class, 'logout']);
