@@ -1,21 +1,100 @@
 part of 'home_gapoktan.dart';
 
 mixin _HomeModalsMixin on _HomePageStateBase {
+  // Daftar pilihan untuk dropdown
+  static const List<String> _jenisKegiatanOptions = [
+    'Penanaman Padi',
+    'Penanaman Jagung',
+    'Penanaman Kedelai',
+    'Penyemprotan',
+    'Pemupukan',
+    'Panen',
+    'Pengairan',
+  ];
+
+  static const List<String> _jenisPestisidaOptions = [
+    'Insektisida',
+    'Fungisida',
+    'Herbisida',
+    'Rodentisida',
+    'Akarisida',
+    'Lainnya',
+  ];
+
+  static const List<String> _jenisPupukOptions = [
+    'Pupuk Urea',
+    'Pupuk NPK',
+    'Pupuk TSP',
+    'Pupuk KCl',
+    'Pupuk Organik',
+    'Pupuk Kompos',
+    'Lainnya',
+  ];
+
+  static const List<String> _targetPenanamanOptions = [
+    '0.5 Hektar',
+    '1 Hektar',
+    '1.5 Hektar',
+    '2 Hektar',
+    '2.5 Hektar',
+    '3 Hektar',
+    '5 Hektar',
+    '10 Hektar',
+    'Lainnya',
+  ];
+
+  // Helper untuk menentukan field mana yang tampil berdasarkan jenis kegiatan
+  bool _showPestisidaField(String jenisKegiatan) {
+    return jenisKegiatan == 'Penyemprotan';
+  }
+
+  bool _showPupukField(String jenisKegiatan) {
+    return jenisKegiatan == 'Pemupukan';
+  }
+
+  bool _showTargetField(String jenisKegiatan) {
+    // Hide untuk Pengairan
+    return jenisKegiatan != 'Pengairan';
+  }
+
+  bool _isTargetRequired(String jenisKegiatan) {
+    // Wajib untuk Penanaman
+    return jenisKegiatan.startsWith('Penanaman');
+  }
+
+  bool _isPestisidaRequired(String jenisKegiatan) {
+    return jenisKegiatan == 'Penyemprotan';
+  }
+
+  String _getTargetLabel(String jenisKegiatan) {
+    if (jenisKegiatan == 'Panen') {
+      return 'Hasil Panen';
+    }
+    return 'Target Penanaman';
+  }
+
   @override
   Future<void> _openEventForm({Kegiatan? existing}) async {
     final formKey = GlobalKey<FormState>();
     final keteranganController = TextEditingController(
       text: existing?.keterangan ?? '',
     );
-    final jenisController = TextEditingController(
-      text: existing?.jenisPenanaman ?? '',
-    );
-    final pestisidaController = TextEditingController(
-      text: existing?.jenisPestisida ?? '',
-    );
-    final targetController = TextEditingController(
-      text: existing?.targetPenanaman ?? '',
-    );
+    
+    // State untuk dropdown
+    String? selectedJenisKegiatan = existing?.jenisPenanaman;
+    String? selectedPestisida = existing?.jenisPestisida;
+    String? selectedPupuk;
+    String? selectedTarget = existing?.targetPenanaman;
+    
+    // Jika edit dan ada jenis pestisida, cek apakah itu sebenarnya pupuk
+    if (existing != null && existing.jenisPestisida.isNotEmpty) {
+      if (_jenisPupukOptions.contains(existing.jenisPestisida) || 
+          existing.jenisPenanaman == 'Pemupukan') {
+        selectedPupuk = existing.jenisPestisida;
+        selectedPestisida = null;
+      }
+    }
+    
     DateTimeRange? range = existing != null
         ? DateTimeRange(start: existing.startDate, end: existing.endDate)
         : null;
@@ -74,26 +153,64 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                           range!.end,
                           exceptId: existing?.id,
                         );
+                    
+                    final jenisKegiatan = selectedJenisKegiatan ?? '';
+                    final showPestisida = _showPestisidaField(jenisKegiatan);
+                    final showPupuk = _showPupukField(jenisKegiatan);
+                    final showTarget = _showTargetField(jenisKegiatan);
+                    final targetRequired = _isTargetRequired(jenisKegiatan);
+                    final pestisidaRequired = _isPestisidaRequired(jenisKegiatan);
+                    final targetLabel = _getTargetLabel(jenisKegiatan);
+                    
                     return SingleChildScrollView(
                       child: Form(
                         key: formKey,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              existing == null
-                                  ? 'Tambah Kegiatan Gapoktan'
-                                  : 'Edit Kegiatan',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            // Header dengan tombol close
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: const Icon(Icons.close, size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  existing == null
+                                      ? 'Tambah Kegiatan Gapoktan'
+                                      : 'Edit Kegiatan',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            _buildInput(
+                            const SizedBox(height: 20),
+                            
+                            // 1. Jenis Kegiatan (Dropdown)
+                            _buildDropdownField(
                               label: 'Jenis Kegiatan',
-                              controller: jenisController,
+                              value: selectedJenisKegiatan,
+                              items: _jenisKegiatanOptions,
+                              hint: 'Pilih Jenis Kegiatan',
+                              isRequired: true,
+                              onChanged: (value) {
+                                setSheetState(() {
+                                  selectedJenisKegiatan = value;
+                                  // Reset field terkait saat jenis berubah
+                                  if (!_showPestisidaField(value ?? '')) {
+                                    selectedPestisida = null;
+                                  }
+                                  if (!_showPupukField(value ?? '')) {
+                                    selectedPupuk = null;
+                                  }
+                                });
+                              },
                             ),
+                            
+                            // 2. Tanggal (Rentang)
                             GestureDetector(
                               onTap: () async {
                                 final picked = await showDateRangePicker(
@@ -109,9 +226,12 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               child: _PickerField(
                                 label: 'Tanggal (Rentang)',
                                 value: _formatRange(range),
+                                isRequired: true,
                               ),
                             ),
                             const SizedBox(height: 12),
+                            
+                            // 3. Waktu Mulai & Selesai
                             Row(
                               children: [
                                 Expanded(
@@ -138,6 +258,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                       value: waktuMulai == null
                                           ? 'Pilih waktu mulai'
                                           : _formatTime(waktuMulai!),
+                                      isRequired: true,
                                     ),
                                   ),
                                 ),
@@ -190,24 +311,64 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                       value: waktuSelesai == null
                                           ? 'Pilih waktu selesai'
                                           : _formatTime(waktuSelesai!),
+                                      isRequired: true,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
-                            _buildInput(
-                              label: 'Jenis Pestisida',
-                              controller: pestisidaController,
-                            ),
-                            _buildInput(
-                              label: 'Target Penanaman',
-                              controller: targetController,
-                            ),
-                            _buildInput(
+                            
+                            // 4. Jenis Pestisida (Dropdown - kondisional)
+                            if (showPestisida)
+                              _buildDropdownField(
+                                label: 'Jenis Pestisida',
+                                value: selectedPestisida,
+                                items: _jenisPestisidaOptions,
+                                hint: 'Pilih Jenis Pestisida',
+                                isRequired: pestisidaRequired,
+                                requiredHint: 'Wajib diisi untuk kegiatan Penyemprotan',
+                                onChanged: (value) {
+                                  setSheetState(() => selectedPestisida = value);
+                                },
+                              ),
+                            
+                            // 4b. Jenis Pupuk (Dropdown - kondisional untuk Pemupukan)
+                            if (showPupuk)
+                              _buildDropdownField(
+                                label: 'Jenis Pupuk',
+                                value: selectedPupuk,
+                                items: _jenisPupukOptions,
+                                hint: 'Pilih Jenis Pupuk',
+                                isRequired: true,
+                                requiredHint: 'Wajib diisi untuk kegiatan Pemupukan',
+                                onChanged: (value) {
+                                  setSheetState(() => selectedPupuk = value);
+                                },
+                              ),
+                            
+                            // 5. Target Penanaman (Dropdown - kondisional)
+                            if (showTarget)
+                              _buildDropdownField(
+                                label: targetLabel,
+                                value: selectedTarget,
+                                items: _targetPenanamanOptions,
+                                hint: 'Pilih $targetLabel',
+                                isRequired: targetRequired,
+                                requiredHint: targetRequired ? 'Wajib diisi untuk kegiatan Penanaman' : null,
+                                onChanged: (value) {
+                                  setSheetState(() => selectedTarget = value);
+                                },
+                              ),
+                            
+                            // 6. Keterangan (Free Text - Opsional)
+                            _buildTextAreaField(
                               label: 'Keterangan',
                               controller: keteranganController,
+                              hint: 'Masukkan catatan tambahan (opsional)',
+                              isRequired: false,
                             ),
+                            
                             if (overlapWarning)
                               Container(
                                 margin: const EdgeInsets.only(top: 12),
@@ -233,8 +394,13 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                 minimumSize: const Size(double.infinity, 48),
                               ),
                               onPressed: () {
-                                if (!(formKey.currentState?.validate() ??
-                                    false)) {
+                                // Validasi field wajib
+                                if (selectedJenisKegiatan == null || selectedJenisKegiatan!.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Jenis Kegiatan wajib dipilih'),
+                                    ),
+                                  );
                                   return;
                                 }
                                 if (range == null ||
@@ -262,20 +428,55 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                   );
                                   return;
                                 }
+                                
+                                // Validasi field kondisional
+                                if (_isTargetRequired(selectedJenisKegiatan!) && 
+                                    (selectedTarget == null || selectedTarget!.isEmpty)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Target Penanaman wajib dipilih'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_isPestisidaRequired(selectedJenisKegiatan!) && 
+                                    (selectedPestisida == null || selectedPestisida!.isEmpty)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Jenis Pestisida wajib dipilih'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_showPupukField(selectedJenisKegiatan!) && 
+                                    (selectedPupuk == null || selectedPupuk!.isEmpty)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Jenis Pupuk wajib dipilih'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                
                                 final currentRange = range!;
+                                // Untuk pestisida, simpan pupuk juga di field yang sama jika pemupukan
+                                final pestisidaValue = showPupuk 
+                                    ? (selectedPupuk ?? '') 
+                                    : (selectedPestisida ?? '');
+                                    
                                 final kegiatanBaru = Kegiatan(
                                   id:
                                       existing?.id ??
                                       DateTime.now().millisecondsSinceEpoch
                                           .toString(),
                                   keterangan: keteranganController.text,
-                                  jenisPenanaman: jenisController.text,
+                                  jenisPenanaman: selectedJenisKegiatan!,
                                   startDate: currentRange.start,
                                   endDate: currentRange.end,
                                   waktuMulai: waktuMulai!,
                                   waktuSelesai: waktuSelesai!,
-                                  jenisPestisida: pestisidaController.text,
-                                  targetPenanaman: targetController.text,
+                                  jenisPestisida: pestisidaValue,
+                                  targetPenanaman: selectedTarget ?? '',
                                   buktiFoto: existing?.buktiFoto,
                                 );
                                 if (!mounted) return;
@@ -332,6 +533,111 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                 (value == null || value.isEmpty) ? 'Wajib diisi' : null,
             decoration: InputDecoration(
               hintText: hint ?? 'Masukkan $label',
+              filled: true,
+              fillColor: const Color(0xFFF7F7F5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required String hint,
+    required bool isRequired,
+    required ValueChanged<String?> onChanged,
+    String? requiredHint,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (isRequired)
+                const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F7F5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonFormField<String>(
+              value: value,
+              isExpanded: true,
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF7F7F5),
+              ),
+              hint: Text(hint, style: const TextStyle(color: Colors.black54)),
+              icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
+              items: items.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                );
+              }).toList(),
+              onChanged: onChanged,
+            ),
+          ),
+          if (isRequired && requiredHint != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 4),
+              child: Text(
+                requiredHint,
+                style: const TextStyle(
+                  color: Color(0xFFD32F2F),
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextAreaField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    required bool isRequired,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (isRequired)
+                const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: controller,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(color: Colors.black54),
               filled: true,
               fillColor: const Color(0xFFF7F7F5),
               border: OutlineInputBorder(

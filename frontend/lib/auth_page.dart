@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/api_service.dart';
-import 'home_ketua.dart';
+import 'main_layout.dart';
 import 'home_gapoktan.dart';
 
 class AuthPage extends StatefulWidget {
@@ -68,7 +68,7 @@ class _AuthPageState extends State<AuthPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => HomeKetuaPage(
+              builder: (_) => MainLayoutScreen(
                 user: userData,
                 token: res['token'],
               ),

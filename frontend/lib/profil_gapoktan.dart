@@ -15,28 +15,43 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF62903A) : Colors.transparent,
-            borderRadius: BorderRadius.circular(40),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: isActive ? Colors.white : Colors.black),
-              const SizedBox(height: 4),
+    const activeColor = Color(0xFF4C7B0F);
+    const inactiveColor = Colors.transparent;
+    const fgColorActive = Colors.white;
+    const fgColorInactive = Colors.black87;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutQuart,
+        padding: isActive
+            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : inactiveColor,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? fgColorActive : fgColorInactive,
+              size: 26,
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(
-                  color: isActive ? Colors.white : Colors.black,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                style: const TextStyle(
+                  color: fgColorActive,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
                 ),
               ),
-            ],
-          ),
+            ]
+          ],
         ),
       ),
     );
@@ -63,17 +78,28 @@ class _Chip extends StatelessWidget {
 }
 
 class _PickerField extends StatelessWidget {
-  const _PickerField({required this.label, required this.value});
+  const _PickerField({
+    required this.label, 
+    required this.value,
+    this.isRequired = false,
+  });
 
   final String label;
   final String value;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Row(
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            if (isRequired)
+              const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+          ],
+        ),
         const SizedBox(height: 6),
         Container(
           width: double.infinity,
@@ -82,7 +108,15 @@ class _PickerField extends StatelessWidget {
             color: const Color(0xFFF7F7F5),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(value, style: const TextStyle(color: Colors.black87)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(value, style: const TextStyle(color: Colors.black87)),
+              ),
+              const Icon(Icons.calendar_today, size: 18, color: Colors.black54),
+            ],
+          ),
         ),
       ],
     );

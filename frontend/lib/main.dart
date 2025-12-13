@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'home_gapoktan.dart';
-import 'home_ketua.dart';
+import 'main_layout.dart';
 import 'splash_screen.dart';
 
 /// Set ke `true` jika ingin langsung membuka versi mock Gapoktan
@@ -63,7 +63,7 @@ class BelajarTaniApp extends StatelessWidget {
       home: useMockGapoktan
           ? HomePage(user: _gapoktanUser, token: _gapoktanToken)
           : useMockKetua
-          ? HomeKetuaPage(user: _ketuaUser, token: _ketuaToken)
+          ? MainLayoutScreen(user: _ketuaUser, token: _ketuaToken)
           : const SplashScreen(),
     );
   }

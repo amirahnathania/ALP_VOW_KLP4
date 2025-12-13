@@ -130,11 +130,9 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFDF4),
-      body: SafeArea(
-        child: Column(
-          children: [
+    return SafeArea(
+      child: Column(
+        children: [
             const SizedBox(height: 16),
 
             /// ===== TITLE =====
@@ -183,7 +181,7 @@ class _CalendarPageState extends State<CalendarPage> {
               /// ===== SCHEDULE TIMELINE =====
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                   child: _buildScheduleList(_eventsForVisibleMonth()),
                 ),
               ),
@@ -220,7 +218,6 @@ class _CalendarPageState extends State<CalendarPage> {
             const SizedBox(height: 16),
           ],
         ),
-      ),
     );
   }
 
@@ -416,7 +413,36 @@ class _CalendarPageState extends State<CalendarPage> {
 
   Widget _buildScheduleList(List<TaskItem> events) {
     if (events.isEmpty) {
-      return const SizedBox.shrink();
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 40),
+            Icon(
+              Icons.event_busy_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada kegiatan hari ini',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Pilih tanggal lain untuk melihat kegiatan',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[400],
+              ),
+            ),
+          ],
+        ),
+      );
     }
     return Column(
       children: [
