@@ -41,4 +41,12 @@ public function profil()
     {
         return $this->belongsTo(Profil::class,  'Id_Profil');
     }
+
+    /**
+     * Relasi dengan BuktiKegiatan
+     */
+    public function buktiKegiatans()
+    {
+        return $this->hasMany(BuktiKegiatan::class, 'Id_Kegiatan');
+    }
 }

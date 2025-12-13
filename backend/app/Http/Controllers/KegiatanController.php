@@ -47,7 +47,24 @@ class KegiatanController extends Controller
      */
     public function index()
     {
-        $kegiatans = Kegiatan::with('profil')->get();
+        // Get total profil dengan jabatan ketua
+        $totalKetuaProfileCount = Profil::whereHas('jabatan', function ($query) {
+            $query->where('Jabatan', 'Ketua');
+        })->count();
+
+        $kegiatans = Kegiatan::with('profil')
+            ->withCount('buktiKegiatans')
+            ->get()
+            ->map(function ($kegiatan) use ($totalKetuaProfileCount) {
+                $persentase = $totalKetuaProfileCount > 0 
+                    ? ($kegiatan->bukti_kegiatans_count / $totalKetuaProfileCount) * 100
+                    : 0;
+
+                return array_merge($kegiatan->toArray(), [
+                    'persentase_bukti' => round($persentase, 2)
+                ]);
+            });
+
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua kegiatan',
@@ -103,7 +120,14 @@ class KegiatanController extends Controller
      */
     public function show($id)
     {
-        $kegiatan = Kegiatan::with('profil')->find($id);
+        // Get total profil dengan jabatan ketua
+        $totalKetuaProfileCount = Profil::whereHas('jabatan', function ($query) {
+            $query->where('Jabatan', 'Ketua Gabungan Kelompok Tani');
+        })->count();
+
+        $kegiatan = Kegiatan::with('profil')
+            ->withCount('buktiKegiatans')
+            ->find($id);
         
         if (!$kegiatan) {
             return response()->json([
@@ -112,9 +136,18 @@ class KegiatanController extends Controller
             ], 404);
         }
 
+        // Hitung persentase
+        $persentase = $totalKetuaProfileCount > 0 
+            ? ($kegiatan->bukti_kegiatans_count / $totalKetuaProfileCount) * 100 
+            : 0;
+
+        $data = array_merge($kegiatan->toArray(), [
+            'persentase_bukti' => round($persentase, 2)
+        ]);
+
         return response()->json([
             'success' => true,
-            'data' => $kegiatan
+            'data' => $data
         ]);
     }
 
@@ -232,5 +265,37 @@ class KegiatanController extends Controller
             'success' => $validation['valid'],
             'message' => $validation['message']
         ], $validation['valid'] ? 200 : 403);
+    }
+
+    /**
+     * Get persentase bukti kegiatan berdasarkan Id_Kegiatan
+     */
+    public function getPersentaseBukti($idKegiatan)
+    {
+        // Get total profil dengan jabatan ketua
+        $totalKetuaProfileCount = Profil::whereHas('jabatan', function ($query) {
+            $query->where('Jabatan', 'Ketua Gabungan Kelompok Tani');
+        })->count();
+
+        $kegiatan = Kegiatan::withCount('buktiKegiatans')->find($idKegiatan);
+        
+        if (!$kegiatan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Id_Kegiatan tidak ditemukan'
+            ], 404);
+        }
+
+        // Hitung persentase
+        $persentase = $totalKetuaProfileCount > 0 
+            ? ($kegiatan->bukti_kegiatans_count / $totalKetuaProfileCount) * 100 
+            : 0;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'persentase_bukti' => round($persentase, 2)
+            ]
+        ]);
     }
 }
