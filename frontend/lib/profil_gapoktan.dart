@@ -26,7 +26,7 @@ class _NavButton extends StatelessWidget {
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOutQuart,
         padding: isActive
-            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+            ? const EdgeInsets.symmetric(horizontal: 18, vertical: 12)
             : const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: isActive ? activeColor : inactiveColor,
@@ -38,7 +38,7 @@ class _NavButton extends StatelessWidget {
             Icon(
               icon,
               color: isActive ? fgColorActive : fgColorInactive,
-              size: 26,
+              size: 24,
             ),
             if (isActive) ...[
               const SizedBox(width: 8),
@@ -47,7 +47,7 @@ class _NavButton extends StatelessWidget {
                 style: const TextStyle(
                   color: fgColorActive,
                   fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                  fontSize: 14,
                 ),
               ),
             ]

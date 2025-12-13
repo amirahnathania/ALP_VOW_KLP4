@@ -54,11 +54,11 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
 
   Widget _buildNavbar() {
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F0E0),
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -70,17 +70,17 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _NavButton(
+          _buildNavItem(
             icon: Icons.calendar_today_rounded,
-            label: 'Kalendar',
+            label: 'Kalender',
             isActive: _activeSection == HomeSection.calendar,
             onTap: () {
               setState(() => _activeSection = HomeSection.calendar);
               HapticFeedback.lightImpact();
             },
           ),
-          const SizedBox(width: 8),
-          _NavButton(
+          const SizedBox(width: 4),
+          _buildNavItem(
             icon: Icons.home_rounded,
             label: 'Rumah',
             isActive: _activeSection == HomeSection.dashboard,
@@ -89,8 +89,8 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
               HapticFeedback.lightImpact();
             },
           ),
-          const SizedBox(width: 8),
-          _NavButton(
+          const SizedBox(width: 4),
+          _buildNavItem(
             icon: Icons.person_rounded,
             label: 'Profil',
             isActive: _activeSection == HomeSection.profile,
@@ -100,6 +100,54 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    const activeColor = Color(0xFF4C7B0F);
+    const fgColorActive = Colors.white;
+    const fgColorInactive = Colors.black87;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 16 : 12,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? fgColorActive : fgColorInactive,
+              size: 22,
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: fgColorActive,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -667,13 +715,13 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
     } else {
       // Fallback data dengan kondisi yang lebih detail
       final fallbackConditions = [
-        {'icon': Icons.wb_sunny_rounded, 'condition': 'Cerah', 'temp': '32°'},
-        {'icon': Icons.cloud_outlined, 'condition': 'Berawan', 'temp': '29°'},
-        {'icon': Icons.grain_rounded, 'condition': 'Gerimis', 'temp': '27°'},
-        {'icon': Icons.wb_sunny_rounded, 'condition': 'Cerah', 'temp': '31°'},
-        {'icon': Icons.cloud_rounded, 'condition': 'Berawan', 'temp': '28°'},
-        {'icon': Icons.water_drop_rounded, 'condition': 'Hujan', 'temp': '26°'},
-        {'icon': Icons.wb_sunny_rounded, 'condition': 'Cerah', 'temp': '30°'},
+        {'icon': Icons.wb_sunny, 'condition': 'Cerah', 'temp': '32°'},
+        {'icon': Icons.cloud_queue, 'condition': 'Berawan', 'temp': '29°'},
+        {'icon': Icons.grain, 'condition': 'Gerimis', 'temp': '27°'},
+        {'icon': Icons.wb_sunny, 'condition': 'Cerah', 'temp': '31°'},
+        {'icon': Icons.cloud, 'condition': 'Mendung', 'temp': '28°'},
+        {'icon': Icons.water_drop, 'condition': 'Hujan', 'temp': '26°'},
+        {'icon': Icons.wb_sunny, 'condition': 'Cerah', 'temp': '30°'},
       ];
       for (int i = 0; i < 7; i++) {
         final date = now.add(Duration(days: i));
@@ -1237,7 +1285,11 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pushReplacementNamed(context, '/');
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AuthPage()),
+                  (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -1250,7 +1302,7 @@ mixin _HomeSectionsMixin on _HomePageStateBase {
                 ),
               ),
               child: const Text(
-                'Logout',
+                'Keluar',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,

@@ -131,6 +131,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false, // Navbar dihandle oleh MainLayout
       child: Column(
         children: [
             const SizedBox(height: 16),
@@ -409,7 +410,7 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  // Schedule List (timeline)
+  // Schedule List - Daftar Kegiatan (card style like Gapoktan)
 
   Widget _buildScheduleList(List<TaskItem> events) {
     if (events.isEmpty) {
@@ -447,85 +448,292 @@ class _CalendarPageState extends State<CalendarPage> {
     return Column(
       children: [
         for (int i = 0; i < events.length; i++) ...[
-          _buildTimelineItem(
-            time: events[i].time,
-            hasEvent: true,
-            eventTitle: events[i].title,
-            eventDescription: events[i].date,
-            eventColor: events[i].color,
-            showLine: i != events.length - 1,
-          ),
-          if (i != events.length - 1) const SizedBox(height: 20),
+          _buildTaskCard(events[i]),
+          if (i != events.length - 1) const SizedBox(height: 12),
         ],
       ],
     );
   }
 
-  // Timeline  (row)
-
-  Widget _buildTimelineItem({
-    required String time,
-    bool hasEvent = false,
-    String eventTitle = '',
-    String eventDescription = '',
-    Color? eventColor,
-    bool showLine = true,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // time
-        Container(
-          width: 60,
-          alignment: Alignment.topRight,
-          padding: EdgeInsets.only(top: hasEvent ? 0 : 4),
-          child: Text(
-            time,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+  // Task Card (like Gapoktan style but without action buttons)
+  Widget _buildTaskCard(TaskItem task) {
+    final accent = task.color;
+    // Simulasi progress (untuk Ketua tidak ada aksi, hanya tampilan)
+    final progress = task.progress / 100.0;
+    final percent = task.progress;
+    // Simulasi jumlah pelapor (misal dari 4 total)
+    final total = 4;
+    final uploaded = (percent * total / 100).round();
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: accent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: () => _showTaskDetail(task),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title and Time Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      task.time,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                // Date
+                Text(
+                  task.date,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 10),
+                // Progress Bar
+                _buildPhotoProgressBar(
+                  progress: progress,
+                  percent: percent,
+                  uploaded: uploaded,
+                  total: total,
+                ),
+                const SizedBox(height: 10),
+                // Bukti Foto button (read-only for Ketua)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white70),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () => _showBuktiFotoInfo(task),
+                      child: const Text('Bukti Foto'),
+                    ),
+                    const Spacer(),
+                    // Avatar stack placeholder (representing reporters)
+                    _buildAvatarStack(uploaded),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        // Remove dot; clicking a day shows event card directly
-        const SizedBox(width: 0),
-        const SizedBox(width: 12),
-        if (hasEvent)
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: eventColor ?? brown,
-                borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+
+  Widget _buildPhotoProgressBar({
+    required double progress,
+    required int percent,
+    required int uploaded,
+    required int total,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(40),
+          child: LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
+            minHeight: 6,
+            backgroundColor: Colors.white24,
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '$percent% pelapor mengunggah foto ($uploaded/$total)',
+          style: const TextStyle(color: Colors.white, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarStack(int count) {
+    if (count == 0) return const SizedBox.shrink();
+    
+    final displayCount = count > 3 ? 3 : count;
+    final overflow = count > 3 ? count - 3 : 0;
+    const size = 34.0;
+    const overlap = size * 0.55;
+    final width = size + (displayCount > 1 ? (displayCount - 1) * overlap : 0) + (overflow > 0 ? size * 0.8 : 0);
+    
+    return SizedBox(
+      height: size,
+      width: width,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var i = 0; i < displayCount; i++)
+            Positioned(
+              right: i * overlap,
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white24,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  size: 18,
+                  color: Colors.white70,
+                ),
               ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    eventTitle,
+            ),
+          if (overflow > 0)
+            Positioned(
+              right: displayCount * overlap,
+              child: Container(
+                width: size * 0.9,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black26,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    '+$overflow',
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
                       color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    eventDescription,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showTaskDetail(TaskItem task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(task.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow(Icons.calendar_today, 'Tanggal', task.date),
+            const SizedBox(height: 8),
+            _buildDetailRow(Icons.access_time, 'Waktu', task.time),
+            const SizedBox(height: 8),
+            _buildDetailRow(Icons.trending_up, 'Progress', '${task.progress}%'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w500)),
+        Expanded(child: Text(value)),
+      ],
+    );
+  }
+
+  void _showBuktiFotoInfo(TaskItem task) {
+    final uploaded = (task.progress * 4 / 100).round();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.photo_library, color: task.color),
+            const SizedBox(width: 8),
+            const Text('Bukti Foto'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task.title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.people, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$uploaded dari 4 pelapor telah mengunggah foto',
+                      style: TextStyle(color: Colors.grey[700]),
                     ),
                   ),
                 ],
               ),
             ),
-          )
-        else
-          const Expanded(child: SizedBox()),
-      ],
+            const SizedBox(height: 12),
+            Text(
+              'Sebagai ketua kelompok, Anda dapat melihat progress pelaporan foto dari anggota.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
     );
   }
 }

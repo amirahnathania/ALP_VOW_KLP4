@@ -90,6 +90,7 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false, // Navbar dihandle oleh MainLayout
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -259,13 +260,13 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
     } else {
       // Fallback data
       final fallbackConditions = [
-        {'icon': Icons.wb_sunny_rounded, 'temp': '32°'},
-        {'icon': Icons.cloud_rounded, 'temp': '29°'},
-        {'icon': Icons.grain_rounded, 'temp': '27°'},
-        {'icon': Icons.wb_sunny_rounded, 'temp': '31°'},
-        {'icon': Icons.cloud_rounded, 'temp': '28°'},
-        {'icon': Icons.grain_rounded, 'temp': '26°'},
-        {'icon': Icons.wb_sunny_rounded, 'temp': '30°'},
+        {'icon': Icons.wb_sunny, 'temp': '32°'},
+        {'icon': Icons.cloud_queue, 'temp': '29°'},
+        {'icon': Icons.grain, 'temp': '27°'},
+        {'icon': Icons.wb_sunny, 'temp': '31°'},
+        {'icon': Icons.cloud, 'temp': '28°'},
+        {'icon': Icons.water_drop, 'temp': '26°'},
+        {'icon': Icons.wb_sunny, 'temp': '30°'},
       ];
       for (int i = 0; i < 7; i++) {
         final date = now.add(Duration(days: i));

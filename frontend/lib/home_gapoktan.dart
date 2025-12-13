@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import 'auth_page.dart';
 import 'models/kegiatan.dart';
 import 'services/weather_service.dart';
 
@@ -549,31 +550,30 @@ class _HomePageState extends _HomePageStateBase
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFDF4),
-      body: SizedBox.expand(
-        child: Stack(
-          children: [
-            // Konten halaman
-            Positioned.fill(
-              child: SafeArea(
-                bottom: false,
-                child: _buildSection(),
+      body: Stack(
+        children: [
+          // Konten halaman
+          Positioned.fill(
+            child: SafeArea(
+              bottom: false,
+              child: _buildSection(),
+            ),
+          ),
+          
+          // Navbar floating di bawah
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              minimum: const EdgeInsets.only(bottom: 16),
+              child: Center(
+                child: _buildNavbar(),
               ),
             ),
-            
-            // Navbar floating di bawah
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 30,
-              child: SafeArea(
-                top: false,
-                child: Center(
-                  child: _buildNavbar(),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

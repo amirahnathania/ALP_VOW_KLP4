@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'auth_page.dart';
+
 class ProfilePage extends StatefulWidget {
   final Map<String, dynamic> user;
   final String token;
@@ -136,6 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false, // Navbar dihandle oleh MainLayout
       child: Column(
         children: [
           const SizedBox(height: 24),
@@ -225,7 +228,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushReplacementNamed(context, '/');
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AuthPage()),
+                          (route) => false,
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
@@ -238,7 +245,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                       child: const Text(
-                        'Logout',
+                        'Keluar',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,

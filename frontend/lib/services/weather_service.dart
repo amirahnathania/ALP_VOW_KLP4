@@ -258,37 +258,38 @@ class WeatherService {
   }
 
   /// Get appropriate weather icon based on condition
+  /// Icons yang lebih jelas dan distinct
   static IconData _getWeatherIcon(String condition) {
     switch (condition.toLowerCase()) {
       case 'clear':
-        return Icons.wb_sunny_rounded;
+        return Icons.wb_sunny; // Matahari penuh
       case 'clouds':
       case 'few clouds':
       case 'scattered clouds':
-        return Icons.cloud_outlined;
+        return Icons.cloud_queue; // Awan dengan outline
       case 'broken clouds':
       case 'overcast clouds':
-        return Icons.cloud_rounded;
+        return Icons.cloud; // Awan penuh/mendung
       case 'rain':
       case 'moderate rain':
       case 'heavy rain':
-        return Icons.water_drop_rounded;
+        return Icons.water_drop; // Tetesan air untuk hujan
       case 'light rain':
       case 'drizzle':
-        return Icons.grain_rounded;
+        return Icons.grain; // Titik-titik untuk gerimis
       case 'thunderstorm':
-        return Icons.thunderstorm_rounded;
+        return Icons.flash_on; // Petir
       case 'snow':
-        return Icons.ac_unit_rounded;
+        return Icons.ac_unit; // Salju/kristal es
       case 'mist':
       case 'fog':
       case 'haze':
-        return Icons.blur_on_rounded;
+        return Icons.dehaze; // Garis-garis untuk kabut
       case 'smoke':
       case 'dust':
-        return Icons.waves_rounded;
+        return Icons.blur_on; // Blur untuk asap/debu
       default:
-        return Icons.cloud_rounded;
+        return Icons.cloud;
     }
   }
 
