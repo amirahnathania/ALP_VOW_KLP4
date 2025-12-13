@@ -13,15 +13,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bukti_kegiatans', function (Blueprint $table) {
-            $table->id();
+            $table->id('Id_Bukti_Kegiatan');
             $table->unsignedBigInteger('Id_Kegiatan');
-            $table->unsignedBigInteger('Id_User')->unique();  // Unique untuk relasi 1-to-1
-            $table->string('Bukti_Foto');
+            $table->unsignedBigInteger('Id_Profil');
+            $table->binary('Bukti_Foto');  // BLOB untuk menyimpan data biner file gambar
+            $table->string('mime_type')->nullable();  // Menyimpan tipe MIME (image/jpeg, image/png, dll)
             $table->timestamps();
 
+            // Unique constraint: 1 profil per kegiatan (bukan global unique)
+            $table->unique(['Id_Kegiatan', 'Id_Profil']);
+            
             // Add foreign key constraints dengan kolom yang BENAR
             $table->foreign('Id_Kegiatan')->references('Id_Kegiatan')->on('kegiatans');
-            $table->foreign('Id_User')->references('Id_User')->on('users');
+            $table->foreign('Id_Profil')->references('Id_Profil')->on('profil');
         });
     }
 
