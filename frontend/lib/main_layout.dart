@@ -36,15 +36,21 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       body: Stack(
         children: [
           // 1. Konten Halaman
-          pages[_selectedIndex],
+          Positioned.fill(
+            child: pages[_selectedIndex],
+          ),
           
           // 2. Custom Navbar (Posisi di bawah)
           Positioned(
             left: 0,
             right: 0,
-            bottom: 30, // Jarak dari bawah layar
-            child: Center(
-              child: _buildCustomNavbar(),
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              minimum: const EdgeInsets.only(bottom: 16),
+              child: Center(
+                child: _buildCustomNavbar(),
+              ),
             ),
           ),
         ],
@@ -54,44 +60,91 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
 
   Widget _buildCustomNavbar() {
     return Container(
-      // Ukuran container utama navbar
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F0E0), // Warna Cream sesuai desain
-        borderRadius: BorderRadius.circular(50), // Membuatnya berbentuk kapsul
+        color: const Color(0xFFF3F0E0),
+        borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             blurRadius: 20,
-            offset: const Offset(0, 10), // Shadow halus di bawah
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min, // Agar lebar navbar menyesuaikan isi
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _NavBarItem(
+          _buildNavItem(
             icon: Icons.calendar_today_rounded,
-            label: "Kalendar",
-            isSelected: _selectedIndex == 0,
+            label: 'Kalender',
+            isActive: _selectedIndex == 0,
             onTap: () => _handleItemTapped(0),
           ),
-          const SizedBox(width: 8), // Jarak antar item
-          _NavBarItem(
+          const SizedBox(width: 4),
+          _buildNavItem(
             icon: Icons.home_rounded,
-            label: "Rumah",
-            isSelected: _selectedIndex == 1,
+            label: 'Rumah',
+            isActive: _selectedIndex == 1,
             onTap: () => _handleItemTapped(1),
           ),
-          const SizedBox(width: 8),
-          _NavBarItem(
+          const SizedBox(width: 4),
+          _buildNavItem(
             icon: Icons.person_rounded,
-            label: "Profil",
-            isSelected: _selectedIndex == 2,
+            label: 'Profil',
+            isActive: _selectedIndex == 2,
             onTap: () => _handleItemTapped(2),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    const activeColor = Color(0xFF4C7B0F);
+    const fgColorActive = Colors.white;
+    const fgColorInactive = Colors.black87;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 16 : 12,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? fgColorActive : fgColorInactive,
+              size: 22,
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: fgColorActive,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -104,69 +157,5 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       // Efek getar ringan saat tap (UX yang bagus)
       HapticFeedback.lightImpact();
     }
-  }
-}
-
-// --- WIDGET ITEM NAVBAR YANG TERPISAH (CLEAN CODE) ---
-
-class _NavBarItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _NavBarItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Warna Diambil dari desain Anda
-    const activeColor = Color(0xFF4C7B0F); // Hijau Tua
-    const inactiveColor = Colors.transparent;
-    const fgColorActive = Colors.white;
-    const fgColorInactive = Colors.black87;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        // INI KUNCI ANIMASINYA
-        duration: const Duration(milliseconds: 400), // Durasi transisi
-        curve: Curves.easeOutQuart, // Kurva animasi "mahal" (smooth ending)
-        padding: isSelected
-            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
-            : const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : inactiveColor,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? fgColorActive : fgColorInactive,
-              size: 26,
-            ),
-            // Trik untuk animasi Text muncul/hilang dengan smooth
-            // Kita gunakan AnimatedSize atau ClipRect, tapi cara paling simple
-            // dan performant di AnimatedContainer adalah mengatur width secara implisit via Row
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: fgColorActive,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
-            ]
-          ],
-        ),
-      ),
-    );
   }
 }
