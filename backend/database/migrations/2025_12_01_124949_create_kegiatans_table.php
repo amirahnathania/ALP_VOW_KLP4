@@ -11,21 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kegiatans', function (Blueprint $table) {
-            $table->id("Id_Kegiatan");
-            $table->string('Jenis_Kegiatan');
-            $table->unsignedBigInteger('Id_Profil')->nullable();
-            $table->date('Tanggal_Mulai');
-            $table->date('Tanggal_Selesai');
-            $table->time('Waktu_Mulai');
-            $table->time('Waktu_Selesai');
-            $table->string('Jenis_Pestisida')->nullable();
-            $table->integer('Target_Penanaman');
-            $table->text('Keterangan')->nullable();
+        Schema::create('kegiatan', function (Blueprint $table) {
+            $table->id("id");
+            $table->unsignedBigInteger('id_profil')->nullable();
+            $table->string('jenis_kegiatan');
+            $table->date('tanggal_mulai');
+            $table->date('tanggal_selesai');
+            $table->time('waktu_mulai');
+            $table->time('waktu_selesai');
+            $table->string('jenis_pestisida')->nullable();
+            $table->integer('target_penanaman');
+            $table->text('keterangan')->nullable();
             $table->timestamps();
-            
-            // Foreign Key
-            $table->foreign('Id_profil')->references('Id_Profil')->on('profil')->onDelete('cascade');
+            $table->foreign('id_profil')->references('id')->on('profil')->onDelete('cascade');
         });
     }
 
@@ -34,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('kegiatans');
+        Schema::dropIfExists('kegiatan');
     }
 };

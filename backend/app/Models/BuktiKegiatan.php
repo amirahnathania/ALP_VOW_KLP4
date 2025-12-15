@@ -6,15 +6,46 @@ use Illuminate\Database\Eloquent\Model;
 
 class BuktiKegiatan extends Model
 {
-    protected $primaryKey = 'Id_Bukti_Kegiatan';
-    protected $table = 'bukti_kegiatans';
+    protected $primaryKey = 'id';
+    protected $table = 'bukti_kegiatan';
 
     protected $fillable = [
-        'Id_Kegiatan',
-        'Id_Profil',
-        'Bukti_Foto',
-        'mime_type',
+        'id_kegiatan',
+        'id_profil',
+        'nama_foto',
+        'tipe_foto',
     ];
+
+    protected $casts = [
+        'id' => 'integer',
+        'id_kegiatan' => 'integer',
+        'id_profil' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Allowed image extensions
+     */
+    public static function allowedExtensions()
+    {
+        return ['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'];
+    }
+
+    /**
+     * Allowed MIME types
+     */
+    public static function allowedMimeTypes()
+    {
+        return [
+            'image/png',
+            'image/jpg',
+            'image/jpeg',
+            'image/svg+xml',
+            'image/gif',
+            'image/webp',
+        ];
+    }
 
     /**
      * Get validation rules for photo files
@@ -22,23 +53,35 @@ class BuktiKegiatan extends Model
     public static function photoValidationRules()
     {
         return [
-            'Bukti_Foto' => 'required|image|mimes:jpeg,jpg,png,gif,svg|max:5120', // max 5MB
+            'foto' => 'required|image|mimes:png,jpg,jpeg,svg,gif,webp|max:5120', // max 5MB
         ];
     }
 
     /**
-     * BuktiKegiatan dimiliki oleh 1 Kegiatan
+     * Get the full path to the image file
      */
-    public function kegiatan()
+    public function getImagePathAttribute()
     {
-        return $this->belongsTo(Kegiatan::class, 'Id_Kegiatan');
+        return public_path('images/' . $this->nama_foto);
     }
 
     /**
-     * BuktiKegiatan dimiliki oleh 1 Profil
+     * Get the URL to access the image
      */
+    public function getImageUrlAttribute()
+    {
+        return url('images/' . $this->nama_foto);
+    }
+
+    // ========== RELATIONS ==========
+
+    public function kegiatan()
+    {
+        return $this->belongsTo(Kegiatan::class, 'id_kegiatan', 'id');
+    }
+
     public function profil()
     {
-        return $this->belongsTo(Profil::class, 'Id_Profil');
+        return $this->belongsTo(Profil::class, 'id_profil', 'id');
     }
 }

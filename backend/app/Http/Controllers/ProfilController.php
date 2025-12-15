@@ -34,28 +34,27 @@ class ProfilController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validasi data input
             $validator = Validator::make($request->all(), [
-                'Id_User' => [
+                'id_user' => [
                     'required',
                     'integer',
-                    'exists:users,Id_User',
-                    Rule::unique('profil', 'Id_User')->whereNull('deleted_at')
+                    'exists:users,id',
+                    Rule::unique('profil', 'id_user')
                 ],
-                'Id_jabatan' => [
+                'id_jabatan' => [
                     'required',
-                    'string',
-                    'exists:jabatan,Id_jabatan'
+                    'integer',
+                    'exists:jabatan,id'
                 ]
             ], [
-                'Id_User.required' => 'ID User wajib diisi',
-                'Id_User.integer' => 'ID User harus berupa angka',
-                'Id_User.exists' => 'User tidak ditemukan',
-                'Id_User.unique' => 'User sudah memiliki profil',
-                
-                'Id_jabatan.required' => 'ID Jabatan wajib diisi',
-                'Id_jabatan.string' => 'ID Jabatan harus berupa teks',
-                'Id_jabatan.exists' => 'Jabatan tidak ditemukan'
+                'id_user.required' => 'ID User wajib diisi',
+                'id_user.integer' => 'ID User harus berupa angka',
+                'id_user.exists' => 'User tidak ditemukan',
+                'id_user.unique' => 'User sudah memiliki profil',
+
+                'id_jabatan.required' => 'ID Jabatan wajib diisi',
+                'id_jabatan.integer' => 'ID Jabatan harus berupa angka',
+                'id_jabatan.exists' => 'Jabatan tidak ditemukan'
             ]);
 
             if ($validator->fails()) {
@@ -68,30 +67,27 @@ class ProfilController extends Controller
 
             $validated = $validator->validated();
 
-            // Cek apakah jabatan masih aktif (business rule)
-            $jabatan = Jabatan::where('Id_jabatan', $validated['Id_jabatan'])->first();
-            
-            if (isset($jabatan->Akhir_jabatan)) {
+            $jabatan = Jabatan::find($validated['id_jabatan']);
+
+            if ($jabatan->akhir_jabatan) {
                 $today = date('Y-m-d');
-                if ($jabatan->Akhir_jabatan < $today) {
+                if ($jabatan->akhir_jabatan < $today) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Jabatan sudah tidak aktif',
                         'data' => [
-                            'jabatan' => $jabatan->Jabatan ?? $jabatan->nama_jabatan,
-                            'akhir_jabatan' => $jabatan->Akhir_jabatan
+                            'jabatan' => $jabatan->jabatan,
+                            'akhir_jabatan' => $jabatan->akhir_jabatan
                         ]
                     ], 400);
                 }
             }
 
-            // Business rule: cek apakah jabatan sudah penuh
-            // Query yang lebih sederhana
-            $existingProfil = Profil::where('Id_jabatan', $validated['Id_jabatan'])
-                ->whereHas('jabatan', function($query) {
-                    $query->where(function($q) {
-                        $q->where('Akhir_jabatan', '>=', now()->format('Y-m-d'))
-                          ->orWhereNull('Akhir_jabatan');
+            $existingProfil = Profil::where('id_jabatan', $validated['id_jabatan'])
+                ->whereHas('jabatan', function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('akhir_jabatan', '>=', now()->format('Y-m-d'))
+                            ->orWhereNull('akhir_jabatan');
                     });
                 })
                 ->first();
@@ -101,13 +97,12 @@ class ProfilController extends Controller
                     'success' => false,
                     'message' => 'Jabatan ini sudah diisi oleh user lain',
                     'data' => [
-                        'jabatan' => $jabatan->Jabatan ?? $jabatan->nama_jabatan,
-                        'user_yang_sudah_ada' => $existingProfil->user->Nama_Pengguna ?? 'Unknown'
+                        'jabatan' => $jabatan->jabatan,
+                        'user_yang_sudah_ada' => $existingProfil->user->nama_pengguna ?? 'Unknown'
                     ]
                 ], 409);
             }
 
-            // Create profil
             $profil = Profil::create($validated);
             $profil->load(['user', 'jabatan']);
 
@@ -116,7 +111,6 @@ class ProfilController extends Controller
                 'message' => 'Profil berhasil dibuat',
                 'data' => $profil
             ], 201);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -130,7 +124,6 @@ class ProfilController extends Controller
     public function show($id)
     {
         try {
-            // Validasi ID harus integer
             if (!is_numeric($id)) {
                 return response()->json([
                     'success' => false,
@@ -139,7 +132,7 @@ class ProfilController extends Controller
             }
 
             $profil = Profil::with(['user', 'jabatan'])->find($id);
-            
+
             if (!$profil) {
                 return response()->json([
                     'success' => false,
@@ -151,7 +144,6 @@ class ProfilController extends Controller
                 'success' => true,
                 'data' => $profil
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -165,7 +157,6 @@ class ProfilController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // Validasi ID harus integer
             if (!is_numeric($id)) {
                 return response()->json([
                     'success' => false,
@@ -174,7 +165,7 @@ class ProfilController extends Controller
             }
 
             $profil = Profil::find($id);
-            
+
             if (!$profil) {
                 return response()->json([
                     'success' => false,
@@ -182,28 +173,20 @@ class ProfilController extends Controller
                 ], 404);
             }
 
-            // Validasi untuk update
             $validator = Validator::make($request->all(), [
-                'Id_User' => [
+                'id_user' => [
                     'sometimes',
                     'required',
                     'integer',
-                    'exists:users,Id_User',
-                    Rule::unique('profil', 'Id_User')->ignore($id, 'Id_Profil')
+                    'exists:users,id',
+                    Rule::unique('profil', 'id_user')->ignore($id)
                 ],
-                'Id_jabatan' => [
+                'id_jabatan' => [
                     'sometimes',
                     'required',
-                    'string',
-                    'exists:jabatan,Id_jabatan'
+                    'integer',
+                    'exists:jabatan,id'
                 ]
-            ], [
-                'Id_User.integer' => 'ID User harus berupa angka',
-                'Id_User.exists' => 'User tidak ditemukan',
-                'Id_User.unique' => 'User sudah memiliki profil',
-                
-                'Id_jabatan.string' => 'ID Jabatan harus berupa teks',
-                'Id_jabatan.exists' => 'Jabatan tidak ditemukan'
             ]);
 
             if ($validator->fails()) {
@@ -216,14 +199,12 @@ class ProfilController extends Controller
 
             $validated = $validator->validated();
 
-            // Jika ada update Id_jabatan, cek business rules
-            if ($request->has('Id_jabatan') && $request->Id_jabatan != $profil->Id_jabatan) {
-                $jabatan = Jabatan::where('Id_jabatan', $validated['Id_jabatan'])->first();
-                
-                // Cek apakah jabatan masih aktif
-                if (isset($jabatan->Akhir_jabatan)) {
+            if ($request->has('id_jabatan') && $request->id_jabatan != $profil->id_jabatan) {
+                $jabatan = Jabatan::find($validated['id_jabatan']);
+
+                if ($jabatan->akhir_jabatan) {
                     $today = date('Y-m-d');
-                    if ($jabatan->Akhir_jabatan < $today) {
+                    if ($jabatan->akhir_jabatan < $today) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Jabatan sudah tidak aktif'
@@ -231,13 +212,12 @@ class ProfilController extends Controller
                     }
                 }
 
-                // Business rule: cek apakah jabatan sudah penuh
-                $existingProfil = Profil::where('Id_jabatan', $validated['Id_jabatan'])
-                    ->where('Id_Profil', '!=', $id)
-                    ->whereHas('jabatan', function($query) {
-                        $query->where(function($q) {
-                            $q->where('Akhir_jabatan', '>=', now()->format('Y-m-d'))
-                              ->orWhereNull('Akhir_jabatan');
+                $existingProfil = Profil::where('id_jabatan', $validated['id_jabatan'])
+                    ->where('id', '!=', $id)
+                    ->whereHas('jabatan', function ($query) {
+                        $query->where(function ($q) {
+                            $q->where('akhir_jabatan', '>=', now()->format('Y-m-d'))
+                                ->orWhereNull('akhir_jabatan');
                         });
                     })
                     ->first();
@@ -258,7 +238,6 @@ class ProfilController extends Controller
                 'message' => 'Profil berhasil diperbarui',
                 'data' => $profil
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -272,7 +251,6 @@ class ProfilController extends Controller
     public function destroy($id)
     {
         try {
-            // Validasi ID harus integer
             if (!is_numeric($id)) {
                 return response()->json([
                     'success' => false,
@@ -281,24 +259,12 @@ class ProfilController extends Controller
             }
 
             $profil = Profil::find($id);
-            
+
             if (!$profil) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Profil tidak ditemukan'
                 ], 404);
-            }
-
-            // Business rule: cek jika jabatan penting
-            $jabatan = $profil->jabatan;
-            if ($jabatan) {
-                $namaJabatan = strtolower($jabatan->Jabatan ?? $jabatan->nama_jabatan ?? '');
-                if (str_contains($namaJabatan, 'direktur') || str_contains($namaJabatan, 'ketua')) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Profil dengan jabatan penting tidak boleh dihapus'
-                    ], 403);
-                }
             }
 
             $profil->delete();
@@ -307,7 +273,6 @@ class ProfilController extends Controller
                 'success' => true,
                 'message' => 'Profil berhasil dihapus'
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

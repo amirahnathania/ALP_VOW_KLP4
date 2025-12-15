@@ -7,36 +7,38 @@ use Carbon\Carbon;
 
 class Jabatan extends Model
 {
-    protected $primaryKey = 'Id_jabatan';
+    protected $primaryKey = 'id';
     protected $table = 'jabatan';
-    
+
     protected $fillable = [
-        'Jabatan',
-        'Awal_jabatan',
-        'Akhir_jabatan',
+        'jabatan',
+        'awal_jabatan',
+        'akhir_jabatan',
     ];
 
     protected $casts = [
-        'Id_jabatan' => 'integer',
-        'Awal_jabatan' => 'date',
-        'Akhir_jabatan' => 'date',
+        'id' => 'integer',
+        'awal_jabatan' => 'date',
+        'akhir_jabatan' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
-    // Relasi
+    // ========== RELATIONS ==========
+
     public function profil()
     {
-        return $this->hasMany(Profil::class, 'Id_jabatan', 'Id_jabatan');
+        return $this->hasMany(Profil::class, 'id_jabatan', 'id');
     }
 
-    // Accessors
+    // ========== ACCESSORS ==========
+
     public function getStatusAttribute()
     {
         $today = Carbon::today();
-        $awal = Carbon::parse($this->Awal_jabatan);
-        $akhir = $this->Akhir_jabatan ? Carbon::parse($this->Akhir_jabatan) : null;
-        
+        $awal = Carbon::parse($this->awal_jabatan);
+        $akhir = $this->akhir_jabatan ? Carbon::parse($this->akhir_jabatan) : null;
+
         if ($today->lessThan($awal)) return 'akan_datang';
         if ($akhir && $today->greaterThan($akhir)) return 'selesai';
         return 'aktif';
@@ -44,12 +46,13 @@ class Jabatan extends Model
 
     public function getDurasiTahunAttribute()
     {
-        $awal = Carbon::parse($this->Awal_jabatan);
-        $akhir = $this->Akhir_jabatan ? Carbon::parse($this->Akhir_jabatan) : Carbon::today();
+        $awal = Carbon::parse($this->awal_jabatan);
+        $akhir = $this->akhir_jabatan ? Carbon::parse($this->akhir_jabatan) : Carbon::today();
         return $akhir->diffInYears($awal);
     }
 
-    // Helper methods
+    // ========== HELPER METHODS ==========
+
     public function isAktif()
     {
         return $this->status === 'aktif';
@@ -60,25 +63,26 @@ class Jabatan extends Model
         return $this->profil()->count() > 0;
     }
 
-    // Scopes
+    // ========== SCOPES ==========
+
     public function scopeAktif($query)
     {
         $today = Carbon::today()->format('Y-m-d');
-        return $query->where('Awal_jabatan', '<=', $today)
-                    ->where(function($q) use ($today) {
-                        $q->where('Akhir_jabatan', '>=', $today)
-                          ->orWhereNull('Akhir_jabatan');
-                    });
+        return $query->where('awal_jabatan', '<=', $today)
+            ->where(function ($q) use ($today) {
+                $q->where('akhir_jabatan', '>=', $today)
+                    ->orWhereNull('akhir_jabatan');
+            });
     }
 
-    // Event handling (backup validation)
+    // ========== EVENT HANDLING ==========
+
     protected static function boot()
     {
         parent::boot();
 
         static::saving(function ($jabatan) {
-            // Backup validation jika ada yang skip Controller
-            if ($jabatan->Akhir_jabatan && $jabatan->Awal_jabatan > $jabatan->Akhir_jabatan) {
+            if ($jabatan->akhir_jabatan && $jabatan->awal_jabatan > $jabatan->akhir_jabatan) {
                 throw new \Exception('Tanggal awal tidak boleh setelah tanggal akhir');
             }
         });

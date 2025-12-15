@@ -9,87 +9,98 @@ class Profil extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'Id_Profil';
+    protected $primaryKey = 'id';
     protected $table = 'profil';
-    
+
     protected $fillable = [
-        'Id_User',
-        'Id_jabatan',
+        'id_user',
+        'id_jabatan',
     ];
 
     protected $casts = [
-        'Id_Profil' => 'integer',
-        'Id_User' => 'integer',
-        'Id_jabatan' => 'string',
+        'id' => 'integer',
+        'id_user' => 'integer',
+        'id_jabatan' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
-    // Relasi ke User
+    // ========== RELATIONS ==========
+
     public function user()
     {
-        return $this->belongsTo(User::class, 'Id_User', 'Id_User');
+        return $this->belongsTo(User::class, 'id_user', 'id');
     }
 
-    // Relasi ke Jabatan
     public function jabatan()
     {
-        return $this->belongsTo(Jabatan::class, 'Id_jabatan', 'Id_jabatan');
+        return $this->belongsTo(Jabatan::class, 'id_jabatan', 'id');
     }
+
+    public function kegiatan()
+    {
+        return $this->hasMany(Kegiatan::class, 'id_profil', 'id');
+    }
+
+    public function buktiKegiatan()
+    {
+        return $this->hasMany(BuktiKegiatan::class, 'id_profil', 'id');
+    }
+
+    // ========== EVENT HANDLING ==========
 
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($profil) {
-            // Validasi tipe data sangat dasar
-            if (!is_numeric($profil->Id_User)) {
-                throw new \InvalidArgumentException('Id_User harus berupa angka');
+            if (!is_numeric($profil->id_user)) {
+                throw new \InvalidArgumentException('id_user harus berupa angka');
             }
-            
-            if (!is_string($profil->Id_jabatan)) {
-                throw new \InvalidArgumentException('Id_jabatan harus berupa string');
+
+            if (!is_numeric($profil->id_jabatan)) {
+                throw new \InvalidArgumentException('id_jabatan harus berupa angka');
             }
         });
     }
 
-    // Scope untuk mendapatkan profil aktif (jabatan masih aktif)
+    // ========== SCOPES ==========
+
     public function scopeActive($query)
     {
         return $query->whereHas('jabatan', function ($q) {
             $q->where(function ($subQuery) {
-                $subQuery->whereNull('Akhir_jabatan')
-                        ->orWhere('Akhir_jabatan', '>=', now()->format('Y-m-d'));
+                $subQuery->whereNull('akhir_jabatan')
+                    ->orWhere('akhir_jabatan', '>=', now()->format('Y-m-d'));
             });
         });
     }
 
-    // Cek apakah user sudah memiliki profil
+    // ========== HELPER METHODS ==========
+
     public static function userHasProfile($userId)
     {
-        return self::where('Id_User', $userId)->exists();
+        return self::where('id_user', $userId)->exists();
     }
 
-    // Cek apakah jabatan sudah diisi (untuk business rule)
     public static function jabatanIsFilled($jabatanId, $excludeProfilId = null)
     {
-        $query = self::where('Id_jabatan', $jabatanId);
-        
+        $query = self::where('id_jabatan', $jabatanId);
+
         if ($excludeProfilId) {
-            $query->where('Id_Profil', '!=', $excludeProfilId);
+            $query->where('id', '!=', $excludeProfilId);
         }
-        
+
         return $query->exists();
     }
 
-    // Cek apakah profil ini memiliki jabatan aktif
     public function hasActiveJabatan()
     {
         if (!$this->jabatan) {
             return false;
         }
-        
+
         $today = now()->format('Y-m-d');
-        return !$this->jabatan->Akhir_jabatan || $this->jabatan->Akhir_jabatan >= $today;
+        return !$this->jabatan->akhir_jabatan || $this->jabatan->akhir_jabatan >= $today;
     }
 }

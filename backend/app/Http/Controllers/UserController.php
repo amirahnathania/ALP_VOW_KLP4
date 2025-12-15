@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -31,9 +30,8 @@ class UserController extends Controller
     // POST /api/users (REGISTER)
     public function store(Request $request)
     {
-        // Validasi akan dihandle oleh Handler.php secara global
         $validated = $request->validate([
-            'Nama_Pengguna' => [
+            'nama_pengguna' => [
                 'required',
                 'string',
                 'min:3',
@@ -42,12 +40,13 @@ class UserController extends Controller
             ],
             'email' => [
                 'required',
+                'email',
                 'max:100',
                 'unique:users,email',
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
-                    
+
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
@@ -63,29 +62,29 @@ class UserController extends Controller
             ],
             'password_confirmation' => 'required|string|same:password'
         ], [
-            'Nama_Pengguna.required' => 'Nama pengguna wajib diisi',
-            'Nama_Pengguna.min' => 'Nama pengguna minimal 3 karakter',
-            'Nama_Pengguna.max' => 'Nama pengguna maksimal 50 karakter',
-            'Nama_Pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
-            
-            'email.required' => 'email wajib diisi',
+            'nama_pengguna.required' => 'Nama pengguna wajib diisi',
+            'nama_pengguna.min' => 'Nama pengguna minimal 3 karakter',
+            'nama_pengguna.max' => 'Nama pengguna maksimal 50 karakter',
+            'nama_pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
+
+            'email.required' => 'Email wajib diisi',
             'email.email' => 'Format email tidak valid',
-            'email.max' => 'email maksimal 100 karakter',
-            'email.unique' => 'email sudah terdaftar',
-            
-            'password.required' => 'password wajib diisi',
-            'password.min' => 'password minimal 8 karakter',
-            'password.max' => 'password maksimal 32 karakter',
+            'email.max' => 'Email maksimal 100 karakter',
+            'email.unique' => 'Email sudah terdaftar',
+
+            'password.required' => 'Password wajib diisi',
+            'password.min' => 'Password minimal 8 karakter',
+            'password.max' => 'Password maksimal 32 karakter',
             'password.confirmed' => 'Konfirmasi password tidak sesuai',
-            'password.regex' => 'password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka',
-            
+            'password.regex' => 'Password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka',
+
             'password_confirmation.required' => 'Konfirmasi password wajib diisi',
             'password_confirmation.same' => 'Konfirmasi password tidak sesuai'
         ]);
 
         try {
             $user = User::create([
-                'Nama_Pengguna' => $validated['Nama_Pengguna'],
+                'nama_pengguna' => $validated['nama_pengguna'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
             ]);
@@ -96,8 +95,8 @@ class UserController extends Controller
                 'success' => true,
                 'message' => 'Registrasi berhasil',
                 'data' => [
-                    'id' => $user->Id_User,
-                    'nama' => $user->Nama_Pengguna,
+                    'id' => $user->id,
+                    'nama_pengguna' => $user->nama_pengguna,
                     'email' => $user->email,
                     'role' => $user->role,
                     'created_at' => $user->created_at
@@ -105,7 +104,6 @@ class UserController extends Controller
                 'token' => $token,
                 'token_type' => 'Bearer',
             ], 201);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -120,7 +118,7 @@ class UserController extends Controller
     {
         try {
             $user = User::with('profil')->find($id);
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -128,21 +126,10 @@ class UserController extends Controller
                 ], 404);
             }
 
-            $userData = [
-                'id' => $user->Id_User,
-                'nama' => $user->Nama_Pengguna,
-                'email' => $user->email,
-                'email_verified_at' => $user->email_verified_at,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
-                'profil' => $user->profil
-            ];
-
             return response()->json([
                 'success' => true,
-                'data' => $userData
+                'data' => $user
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -156,7 +143,7 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::find($id);
-        
+
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -165,7 +152,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'Nama_Pengguna' => [
+            'nama_pengguna' => [
                 'sometimes',
                 'required',
                 'string',
@@ -178,11 +165,11 @@ class UserController extends Controller
                 'required',
                 'email',
                 'max:100',
-                Rule::unique('users', 'email')->ignore($id, 'Id_User'),
+                Rule::unique('users', 'email')->ignore($id),
                 function ($attribute, $value, $fail) {
                     $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
                     $domain = substr(strrchr($value, "@"), 1);
-                    
+
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
                     }
@@ -197,27 +184,27 @@ class UserController extends Controller
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/'
             ]
         ], [
-            'Nama_Pengguna.min' => 'Nama pengguna minimal 3 karakter',
-            'Nama_Pengguna.max' => 'Nama pengguna maksimal 50 karakter',
-            'Nama_Pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
-            'password.min' => 'password minimal 8 karakter',
-            'password.max' => 'password maksimal 32 karakter',
-            'password.regex' => 'password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka'
+            'nama_pengguna.min' => 'Nama pengguna minimal 3 karakter',
+            'nama_pengguna.max' => 'Nama pengguna maksimal 50 karakter',
+            'nama_pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
+            'password.min' => 'Password minimal 8 karakter',
+            'password.max' => 'Password maksimal 32 karakter',
+            'password.regex' => 'Password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka'
         ]);
 
         try {
             $data = [];
-            
-            if ($request->has('Nama_Pengguna')) {
-                $data['Nama_Pengguna'] = $validated['Nama_Pengguna'];
+
+            if ($request->has('nama_pengguna')) {
+                $data['nama_pengguna'] = $validated['nama_pengguna'];
             }
-            
+
             if ($request->has('email')) {
                 $data['email'] = $validated['email'];
             }
-            
+
             if ($request->has('password')) {
-                $data['password'] = Hash::make($validated['password']);
+                $data['password'] = $validated['password'];
             }
 
             $user->update($data);
@@ -225,13 +212,8 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Data pengguna berhasil diperbarui',
-                'data' => [
-                    'id' => $user->Id_User,
-                    'nama' => $user->Nama_Pengguna,
-                    'email' => $user->email
-                ]
+                'data' => $user
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -246,7 +228,7 @@ class UserController extends Controller
     {
         try {
             $user = User::find($id);
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -267,7 +249,6 @@ class UserController extends Controller
                 'success' => true,
                 'message' => 'Pengguna berhasil dihapus'
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -302,10 +283,10 @@ class UserController extends Controller
         ], [
             'email.required' => 'Email wajib diisi',
             'email.email' => 'Format email tidak valid',
-            'email.max' => 'email maksimal 100 karakter',
-            'password.required' => 'password wajib diisi',
-            'password.min' => 'password minimal 8 karakter',
-            'password.max' => 'password maksimal 32 karakter'
+            'email.max' => 'Email maksimal 100 karakter',
+            'password.required' => 'Password wajib diisi',
+            'password.min' => 'Password minimal 8 karakter',
+            'password.max' => 'Password maksimal 32 karakter'
         ]);
 
         try {
@@ -314,14 +295,14 @@ class UserController extends Controller
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'email tidak ditemukan'
+                    'message' => 'Email tidak ditemukan'
                 ], 401);
             }
 
             if (!Hash::check($validated['password'], $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'password salah'
+                    'message' => 'Password salah'
                 ], 401);
             }
 
@@ -331,23 +312,16 @@ class UserController extends Controller
                 'success' => true,
                 'message' => 'Login berhasil',
                 'data' => [
-                    'id' => $user->Id_User,
-                    'nama' => $user->Nama_Pengguna,
-                    'email' => $user->email
+                    'id' => $user->id,
+                    'nama_pengguna' => $user->nama_pengguna,
+                    'email' => $user->email,
+                    'role' => $user->role
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer',
                 'expires_in' => 604800
             ], 200);
-            
         } catch (\Exception $e) {
-            \Log::error('Login error: ', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'ip' => $request->ip(),
-                'email' => $request->input('email')
-            ]);
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan pada server'
@@ -360,7 +334,7 @@ class UserController extends Controller
     {
         try {
             $request->user()->currentAccessToken()->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Logout berhasil'
