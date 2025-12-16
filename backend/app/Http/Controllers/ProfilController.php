@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Profil;
 use App\Models\User;
 use App\Models\Jabatan;
+use App\Http\Resources\ProfilResource;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
@@ -18,7 +19,7 @@ class ProfilController extends Controller
             $profil = Profil::with(['user', 'jabatan'])->get();
             return response()->json([
                 'success' => true,
-                'data' => $profil,
+                'data' => ProfilResource::collection($profil),
                 'count' => $profil->count()
             ]);
         } catch (\Exception $e) {
@@ -109,7 +110,7 @@ class ProfilController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Profil berhasil dibuat',
-                'data' => $profil
+                'data' => new ProfilResource($profil)
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -142,7 +143,7 @@ class ProfilController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $profil
+                'data' => new ProfilResource($profil)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -236,7 +237,7 @@ class ProfilController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Profil berhasil diperbarui',
-                'data' => $profil
+                'data' => new ProfilResource($profil)
             ]);
         } catch (\Exception $e) {
             return response()->json([

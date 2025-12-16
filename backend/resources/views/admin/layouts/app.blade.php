@@ -12,6 +12,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!-- Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -21,25 +26,25 @@
     @stack('styles')
 </head>
 
-<body class="font-sans antialiased bg-gray-50">
-    <div class="flex min-h-screen">
+<body class="font-sans antialiased bg-gray-50 overflow-x-hidden">
+    <div class="flex min-h-screen overflow-x-hidden">
         <!-- Sidebar -->
         @include('admin.partials.sidebar')
 
         <!-- Main Content -->
-        <div class="flex-1 ml-64">
+        <div class="flex-1 lg:ml-64 w-full">
             <!-- Header -->
             @include('admin.partials.header')
 
             <!-- Page Content -->
-            <main class="p-6">
+            <main class="p-4 md:p-6 w-full max-w-full overflow-x-hidden">
                 @yield('content')
             </main>
         </div>
     </div>
 
     <!-- Toast Container -->
-    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+    <div id="toast-container" class="fixed top-4 right-4 left-4 md:left-auto z-50 space-y-2 max-w-md mx-auto md:mx-0"></div>
 
     <!-- Modal Container -->
     <div id="modal-container"></div>
@@ -109,7 +114,7 @@
                 <div class="modal ${sizes[options.size || 'md']}">
                     <div class="modal-header">
                         <h3 class="modal-title">${options.title || 'Modal'}</h3>
-                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 -mr-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -119,7 +124,7 @@
                     ${options.hideFooter ? '' : `
                         <div class="modal-footer">
                             <button onclick="closeModal()" class="btn btn-secondary">${options.cancelText || 'Batal'}</button>
-                            ${options.onConfirm ? `<button onclick="(${options.onConfirm.toString()})()" class="btn btn-primary">${options.confirmText || 'OK'}</button>` : ''}
+                            <span class="modal-confirm-placeholder"></span>
                         </div>
                         `}
                 </div>
@@ -131,6 +136,35 @@
 
             container.innerHTML = '';
             container.appendChild(modal);
+
+            // Attach confirm handler without stringifying to preserve closure
+            if (options.onConfirm) {
+                try {
+                    const placeholder = modal.querySelector('.modal-confirm-placeholder');
+                    if (placeholder) {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-primary';
+                        btn.textContent = options.confirmText || 'OK';
+                        btn.addEventListener('click', function(e) {
+                            try {
+                                // call provided handler and then close modal if it doesn't prevent
+                                const res = options.onConfirm(e);
+                                // if handler returns a Promise, close modal after it resolves
+                                if (res && typeof res.then === 'function') {
+                                    res.then(() => closeModal()).catch(() => {});
+                                } else {
+                                    closeModal();
+                                }
+                            } catch (err) {
+                                console.error('modal onConfirm handler error', err);
+                            }
+                        });
+                        placeholder.parentNode.replaceChild(btn, placeholder);
+                    }
+                } catch (e) {
+                    console.warn('Failed to attach modal confirm handler', e);
+                }
+            }
         }
 
         // Close modal
@@ -164,7 +198,7 @@
                 <div class="drawer">
                     <div class="drawer-header">
                         <h3 class="text-lg font-semibold">${options.title || 'Drawer'}</h3>
-                        <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-600">
+                        <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 -mr-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -191,18 +225,62 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             };
 
+            // Merge headers (preserve CSRF token) and allow caller to override
+            const mergedHeaders = {
+                ...defaultOptions.headers,
+                ...(options.headers || {})
+            };
+
+            // Handle FormData bodies: let browser set Content-Type with boundary
+            let body = options.body;
+            if (body instanceof FormData) {
+                delete mergedHeaders['Content-Type'];
+            }
+
+            // Support Laravel method spoofing when caller provides PUT/PATCH/DELETE
+            if (options.method && ['PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())) {
+                const method = options.method.toUpperCase();
+                if (body instanceof FormData) {
+                    body.append('_method', method);
+                    options.body = body;
+                } else {
+                    let parsed = {};
+                    try {
+                        parsed = body ? JSON.parse(body) : {};
+                    } catch (e) {
+                        parsed = {};
+                    }
+                    parsed._method = method;
+                    options.body = JSON.stringify(parsed);
+                }
+                options.method = 'POST';
+            }
+
             const response = await fetch(url, {
                 ...defaultOptions,
-                ...options
+                ...options,
+                headers: mergedHeaders,
+                body: options.body
             });
-            const data = await response.json();
+
+            // Try parse JSON, fallback to text on failure
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                const text = await response.text();
+                data = { __raw: text };
+            }
 
             if (!response.ok) {
-                throw new Error(data.message || 'Request failed');
+                // If server returned HTML (redirect), include it in error
+                const msg = (data && data.message) ? data.message : (data && data.__raw) ? data.__raw : 'Request failed';
+                throw new Error(msg);
             }
 
             return data;

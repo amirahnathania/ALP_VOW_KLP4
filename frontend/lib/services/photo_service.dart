@@ -13,9 +13,9 @@ class PhotoService {
     try {
       if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         // Buka custom camera screen dengan tombol back yang jelas
-        final String? path = await Navigator.of(context).push<String>(
-          MaterialPageRoute(builder: (_) => const CameraScreen()),
-        );
+        final String? path = await Navigator.of(
+          context,
+        ).push<String>(MaterialPageRoute(builder: (_) => const CameraScreen()));
         if (path == null) return null;
         return File(path);
       }
@@ -42,13 +42,15 @@ class PhotoService {
   static Future<Map<String, dynamic>?> uploadTaskPhotoWithFeedback({
     required BuildContext context,
     required String token,
-    required String taskId,
+    required int idKegiatan,
+    required int idProfil,
     required String filePath,
   }) async {
     try {
-      final result = await ApiService.uploadTaskPhoto(
+      final result = await ApiService.uploadBuktiKegiatan(
         token: token,
-        taskId: taskId,
+        idKegiatan: idKegiatan,
+        idProfil: idProfil,
         filePath: filePath,
       );
 

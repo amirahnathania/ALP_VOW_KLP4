@@ -1,6 +1,8 @@
 // kalender_ketua.dart
 import 'package:flutter/material.dart';
 import 'models/tasks.dart';
+import 'package:intl/intl.dart';
+import 'services/api_service.dart';
 
 // kalender_ketua.dart
 class CalendarPage extends StatefulWidget {
@@ -42,6 +44,88 @@ class _CalendarPageState extends State<CalendarPage> {
   void initState() {
     super.initState();
     _rebuildEventColors();
+    _loadKegiatanForCalendar();
+  }
+
+  Future<void> _loadKegiatanForCalendar() async {
+    try {
+      final token = widget.token;
+      if (token == null || token.isEmpty) return;
+
+      final kegiatanResp = await ApiService.getKegiatanList(token: token);
+      final buktiResp = await ApiService.getBuktiList(token: token);
+
+      final List<dynamic> kegiatanData = kegiatanResp['data'] ?? [];
+      final List<dynamic> buktiData = buktiResp['data'] ?? [];
+
+      // Map bukti by kegiatan id
+      final Map<String, List<dynamic>> buktiByK = {};
+      for (final b in buktiData) {
+        final idk = b['idKegiatan']?.toString() ?? '';
+        buktiByK.putIfAbsent(idk, () => <dynamic>[]).add(b);
+      }
+
+      final List<TaskItem> items = [];
+      for (final k in kegiatanData) {
+        try {
+          final id = (k['id'] ?? '').toString();
+          final title = (k['keterangan'] ?? k['jenisKegiatan'] ?? '')
+              .toString();
+          final tanggal = k['tanggalMulai']?.toString() ?? '';
+          final d = DateTime.tryParse(tanggal);
+          final dateStr = d != null
+              ? DateFormat('dd MMMM yyyy', 'id_ID').format(d.toLocal())
+              : '';
+          final waktuMulai = k['waktuMulai']?.toString() ?? '';
+          final waktuSelesai = k['waktuSelesai']?.toString() ?? '';
+          final timeRange = (waktuMulai.isNotEmpty && waktuSelesai.isNotEmpty)
+              ? '${waktuMulai.split(':').take(2).join(':')} - ${waktuSelesai.split(':').take(2).join(':')}'
+              : '';
+
+          final buktiCount = (buktiByK[id] ?? []).length;
+          final progress = (buktiCount > 0) ? ((buktiCount * 100) ~/ 4) : 0;
+
+          // Optionally attach thumbnails into a simple field on TaskItem via its title or use elsewhere.
+          // If bukti entries include image names but no imageUrl, ensure we have absolute URL available.
+          for (final b in (buktiByK[id] ?? [])) {
+            // normalize image url into the bukti object so other UI can use it
+            if ((b['imageUrl'] ?? '').toString().isEmpty) {
+              if ((b['namaFoto'] ?? '').toString().isNotEmpty) {
+                b['imageUrl'] = ApiService.imageUrlFromName(
+                  (b['namaFoto'] ?? '').toString(),
+                );
+              } else if ((b['nama_foto'] ?? '').toString().isNotEmpty) {
+                b['imageUrl'] = ApiService.imageUrlFromName(
+                  (b['nama_foto'] ?? '').toString(),
+                );
+              }
+            }
+          }
+
+          items.add(
+            TaskItem(
+              id: id.isNotEmpty ? id : 'k-$id',
+              title: title,
+              progress: progress.clamp(0, 100),
+              color: const Color(0xFF7B5B18),
+              date: dateStr,
+              time: timeRange,
+            ),
+          );
+        } catch (e) {
+          debugPrint('Map calendar kegiatan error: $e');
+        }
+      }
+
+      if (items.isNotEmpty) {
+        sharedTasks.clear();
+        sharedTasks.addAll(items);
+        _rebuildEventColors();
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Failed to load kegiatan for calendar: $e');
+    }
   }
 
   void _prevMonth() {
@@ -134,91 +218,97 @@ class _CalendarPageState extends State<CalendarPage> {
       bottom: false, // Navbar dihandle oleh MainLayout
       child: Column(
         children: [
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-            /// ===== TITLE =====
-            Text(
-              _currentIndex == 0
-                  ? 'Kalender'
-                  : _currentIndex == 1
-                  ? 'Rumah'
-                  : 'Profil',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          /// ===== TITLE =====
+          Text(
+            _currentIndex == 0
+                ? 'Kalender'
+                : _currentIndex == 1
+                ? 'Rumah'
+                : 'Profil',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          ),
+
+          const SizedBox(height: 16),
+
+          if (_currentIndex == 0) ...[
+            /// ===== CARD KALENDER =====
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildCalendarCard(),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 28),
 
-            if (_currentIndex == 0) ...[
-              /// ===== CARD KALENDER =====
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildCalendarCard(),
-              ),
-
-              const SizedBox(height: 28),
-
-              /// ===== HEADER: DAFTAR KEGIATAN =====
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Builder(
-                    builder: (_) {
-                      return const Text(
-                        'Daftar Kegiatan',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      );
-                    },
-                  ),
+            /// ===== HEADER: DAFTAR KEGIATAN =====
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Builder(
+                  builder: (_) {
+                    return const Text(
+                      'Daftar Kegiatan',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    );
+                  },
                 ),
               ),
+            ),
 
-              const SizedBox(height: 18),
+            const SizedBox(height: 18),
 
-              /// ===== SCHEDULE TIMELINE =====
-              Expanded(
+            /// ===== SCHEDULE TIMELINE =====
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await _loadKegiatanForCalendar();
+                },
                 child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                   child: _buildScheduleList(_eventsForVisibleMonth()),
                 ),
               ),
-            ] else ...[
-              const SizedBox(height: 24),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _currentIndex == 1
-                            ? Icons.home_outlined
-                            : Icons.person_outline,
-                        size: 64,
+            ),
+          ] else ...[
+            const SizedBox(height: 24),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _currentIndex == 1
+                          ? Icons.home_outlined
+                          : Icons.person_outline,
+                      size: 64,
+                      color: Colors.black54,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _currentIndex == 1
+                          ? 'Halaman Rumah (placeholder)'
+                          : 'Halaman Profil (placeholder)',
+                      style: const TextStyle(
+                        fontSize: 16,
                         color: Colors.black54,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _currentIndex == 1
-                            ? 'Halaman Rumah (placeholder)'
-                            : 'Halaman Profil (placeholder)',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-
-            const SizedBox(height: 16),
+            ),
           ],
-        ),
+
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 
@@ -419,11 +509,7 @@ class _CalendarPageState extends State<CalendarPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
-            Icon(
-              Icons.event_busy_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.event_busy_outlined, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'Tidak ada kegiatan hari ini',
@@ -436,10 +522,7 @@ class _CalendarPageState extends State<CalendarPage> {
             const SizedBox(height: 8),
             Text(
               'Pilih tanggal lain untuk melihat kegiatan',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[400],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
             ),
           ],
         ),
@@ -464,7 +547,7 @@ class _CalendarPageState extends State<CalendarPage> {
     // Simulasi jumlah pelapor (misal dari 4 total)
     final total = 4;
     final uploaded = (percent * total / 100).round();
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
@@ -510,10 +593,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 ),
                 const SizedBox(height: 2),
                 // Date
-                Text(
-                  task.date,
-                  style: const TextStyle(color: Colors.white70),
-                ),
+                Text(task.date, style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 10),
                 // Progress Bar
                 _buildPhotoProgressBar(
@@ -531,7 +611,10 @@ class _CalendarPageState extends State<CalendarPage> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white70),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                       onPressed: () => _showBuktiFotoInfo(task),
                       child: const Text('Bukti Foto'),
@@ -578,13 +661,16 @@ class _CalendarPageState extends State<CalendarPage> {
 
   Widget _buildAvatarStack(int count) {
     if (count == 0) return const SizedBox.shrink();
-    
+
     final displayCount = count > 3 ? 3 : count;
     final overflow = count > 3 ? count - 3 : 0;
     const size = 34.0;
     const overlap = size * 0.55;
-    final width = size + (displayCount > 1 ? (displayCount - 1) * overlap : 0) + (overflow > 0 ? size * 0.8 : 0);
-    
+    final width =
+        size +
+        (displayCount > 1 ? (displayCount - 1) * overlap : 0) +
+        (overflow > 0 ? size * 0.8 : 0);
+
     return SizedBox(
       height: size,
       width: width,

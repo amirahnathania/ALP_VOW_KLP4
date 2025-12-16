@@ -62,7 +62,23 @@ class BuktiKegiatan extends Model
      */
     public function getImagePathAttribute()
     {
-        return public_path('images/' . $this->nama_foto);
+        $name = $this->nama_foto ?? '';
+        $type = $this->tipe_foto ?? '';
+
+        // If nama_foto already contains an extension, use it as-is
+        if (str_contains($name, '.')) {
+            $filename = $name;
+        } else {
+            // If tipe_foto contains a mime (image/webp), convert to extension
+            if (str_starts_with($type, 'image/')) {
+                $ext = '.' . explode('/', $type)[1];
+            } else {
+                $ext = $type; // assume already like '.webp'
+            }
+            $filename = $name . $ext;
+        }
+
+        return public_path('images/' . $filename);
     }
 
     /**
@@ -70,7 +86,21 @@ class BuktiKegiatan extends Model
      */
     public function getImageUrlAttribute()
     {
-        return url('images/' . $this->nama_foto);
+        $name = $this->nama_foto ?? '';
+        $type = $this->tipe_foto ?? '';
+
+        if (str_contains($name, '.')) {
+            $filename = $name;
+        } else {
+            if (str_starts_with($type, 'image/')) {
+                $ext = '.' . explode('/', $type)[1];
+            } else {
+                $ext = $type;
+            }
+            $filename = $name . $ext;
+        }
+
+        return url('images/' . $filename);
     }
 
     // ========== RELATIONS ==========

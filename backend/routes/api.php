@@ -33,6 +33,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // CRUD Users lainnya (GET, PUT, DELETE)
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
+    // Ensure the user has a profil; create one if missing and return user with profil.jabatan
+    Route::get('/users/{id}/ensure-profil', [UserController::class, 'ensureProfil']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::patch('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);

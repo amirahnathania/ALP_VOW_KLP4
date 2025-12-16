@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Kegiatan;
 use App\Models\Profil;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreKegiatanRequest;
+use App\Http\Requests\UpdateKegiatanRequest;
+use App\Http\Resources\KegiatanResource;
 
 class KegiatanController extends Controller
 {
@@ -57,32 +60,64 @@ class KegiatanController extends Controller
                     ? ($kegiatan->bukti_kegiatan_count / $totalKetuaProfileCount) * 100
                     : 0;
 
-                return array_merge($kegiatan->toArray(), [
-                    'persentase_bukti' => round($persentase, 2)
-                ]);
+                $kegiatan->persentase_bukti = round($persentase, 2);
+                return $kegiatan;
             });
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua kegiatan',
-            'data' => $kegiatans
+            'data' => KegiatanResource::collection($kegiatans)
         ]);
     }
 
     // POST /api/kegiatan
-    public function store(Request $request)
+    public function store(StoreKegiatanRequest $request)
     {
-        $validated = $request->validate([
-            'jenis_kegiatan' => 'required|string|max:255',
-            'id_profil' => 'required|exists:profil,id',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date',
-            'waktu_mulai' => 'required|date_format:H:i:s',
-            'waktu_selesai' => 'required|date_format:H:i:s',
-            'jenis_pestisida' => 'nullable|string|max:255',
-            'target_penanaman' => 'required|integer',
-            'keterangan' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
+
+        // Resolve id_profil from authenticated user or from provided email if possible.
+        // This lets clients omit idProfil and rely on auth token or email.
+        $idProfilResolved = null;
+        try {
+            $authUser = $request->user();
+            if ($authUser) {
+                $profil = Profil::where('id_user', $authUser->id)->first();
+                if (!$profil) {
+                    // create profil using an active or fallback jabatan
+                    $jabatan = \App\Models\Jabatan::aktif()->first() ?? \App\Models\Jabatan::first();
+                    if (!$jabatan) {
+                        $jabatan = \App\Models\Jabatan::create([
+                            'jabatan' => 'Anggota Sementara',
+                            'awal_jabatan' => now()->format('Y-m-d'),
+                            'akhir_jabatan' => null,
+                        ]);
+                    }
+                    $profil = Profil::create([
+                        'id_user' => $authUser->id,
+                        'id_jabatan' => $jabatan->id,
+                    ]);
+                }
+                $idProfilResolved = $profil->id;
+            } elseif ($request->filled('email')) {
+                $user = \App\Models\User::where('email', $request->input('email'))->first();
+                if ($user) {
+                    $profil = Profil::firstOrCreate([
+                        'id_user' => $user->id,
+                    ], [
+                        'id_jabatan' => (\App\Models\Jabatan::aktif()->first() ?? \App\Models\Jabatan::first())->id ?? 1,
+                    ]);
+                    $idProfilResolved = $profil->id;
+                }
+            }
+        } catch (\Exception $e) {
+            // ignore and fall back to provided id_profil if any
+        }
+
+        if ($idProfilResolved !== null) {
+            $validated['id_profil'] = $idProfilResolved;
+        }
+
 
         if ($validated['waktu_mulai'] === $validated['waktu_selesai']) {
             return response()->json([
@@ -91,12 +126,24 @@ class KegiatanController extends Controller
             ], 422);
         }
 
-        $jabatanValidation = $this->validateProfilIsKetua($validated['id_profil']);
-        if (!$jabatanValidation['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => $jabatanValidation['message']
-            ], 403);
+        // Allow the authenticated user to create kegiatan for their own profil
+        $profilForValidation = Profil::find($validated['id_profil']);
+        if ($profilForValidation) {
+            $authUser = $request->user();
+            $allow = false;
+            if ($authUser && $profilForValidation->id_user == $authUser->id) {
+                // Owner may create kegiatan for themselves even if not Ketua
+                $allow = true;
+            }
+            if (!$allow) {
+                $jabatanValidation = $this->validateProfilIsKetua($validated['id_profil']);
+                if (!$jabatanValidation['valid']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $jabatanValidation['message']
+                    ], 403);
+                }
+            }
         }
 
         $kegiatan = Kegiatan::create($validated);
@@ -105,7 +152,7 @@ class KegiatanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Kegiatan berhasil ditambah',
-            'data' => $kegiatan
+            'data' => new KegiatanResource($kegiatan)
         ], 201);
     }
 
@@ -131,18 +178,16 @@ class KegiatanController extends Controller
             ? ($kegiatan->bukti_kegiatan_count / $totalKetuaProfileCount) * 100
             : 0;
 
-        $data = array_merge($kegiatan->toArray(), [
-            'persentase_bukti' => round($persentase, 2)
-        ]);
+        $kegiatan->persentase_bukti = round($persentase, 2);
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => new KegiatanResource($kegiatan)
         ]);
     }
 
     // PUT/PATCH /api/kegiatan/{id}
-    public function update(Request $request, $id)
+    public function update(UpdateKegiatanRequest $request, $id)
     {
         $kegiatan = Kegiatan::find($id);
 
@@ -153,25 +198,29 @@ class KegiatanController extends Controller
             ], 404);
         }
 
-        $jabatanValidation = $this->validateProfilIsKetua($kegiatan->id_profil);
-        if (!$jabatanValidation['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat mengubah kegiatan'
-            ], 403);
+        // Allow the authenticated owner of the kegiatan to update it even if not Ketua
+        $authUser = $request->user();
+        $allowUpdate = false;
+        try {
+            if ($authUser && $kegiatan->profil && $kegiatan->profil->id_user == $authUser->id) {
+                $allowUpdate = true;
+            }
+        } catch (\Exception $e) {
+            // ignore and fall through to validation
         }
 
-        $validated = $request->validate([
-            'jenis_kegiatan' => 'sometimes|required|string|max:255',
-            'id_profil' => 'sometimes|required|exists:profil,id',
-            'tanggal_mulai' => 'sometimes|required|date',
-            'tanggal_selesai' => 'sometimes|required|date',
-            'waktu_mulai' => 'sometimes|required|date_format:H:i:s',
-            'waktu_selesai' => 'sometimes|required|date_format:H:i:s',
-            'jenis_pestisida' => 'nullable|string|max:255',
-            'target_penanaman' => 'sometimes|required|integer',
-            'keterangan' => 'nullable|string',
-        ]);
+        if (!$allowUpdate) {
+            $jabatanValidation = $this->validateProfilIsKetua($kegiatan->id_profil);
+            if (!$jabatanValidation['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat mengubah kegiatan'
+                ], 403);
+            }
+        }
+
+        $validated = $request->validated();
+
 
         $waktuMulai = $validated['waktu_mulai'] ?? $kegiatan->waktu_mulai;
         $waktuSelesai = $validated['waktu_selesai'] ?? $kegiatan->waktu_selesai;
@@ -199,7 +248,7 @@ class KegiatanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Kegiatan berhasil diperbarui',
-            'data' => $kegiatan
+            'data' => new KegiatanResource($kegiatan)
         ]);
     }
 
@@ -215,12 +264,37 @@ class KegiatanController extends Controller
             ], 404);
         }
 
-        $kegiatan->delete();
+        // Delete related bukti_kegiatan and their image files first to avoid FK constraint errors
+        try {
+            $bukits = $kegiatan->buktiKegiatan()->get();
+            foreach ($bukits as $bukti) {
+                try {
+                    $imagePath = $bukti->image_path ?? null;
+                    if ($imagePath && file_exists($imagePath)) {
+                        @unlink($imagePath);
+                    }
+                } catch (\Exception $e) {
+                    // ignore file deletion errors
+                }
+                try {
+                    $bukti->delete();
+                } catch (\Exception $e) {
+                    // ignore individual delete errors and continue
+                }
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Kegiatan berhasil dihapus'
-        ]);
+            $kegiatan->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kegiatan berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus kegiatan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // GET /api/kegiatan/{id}/persentase-bukti

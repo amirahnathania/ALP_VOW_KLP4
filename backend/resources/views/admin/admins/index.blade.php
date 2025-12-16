@@ -26,27 +26,21 @@
         <!-- Filters -->
         <div class="card">
             <div class="card-body">
-                <form id="filter-form" class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-1">
-                        <div class="relative">
-                            <input type="text" name="search" value="{{ request('search') }}"
-                                placeholder="Cari nama atau email..." class="form-input pl-10">
-                            {{-- <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg> --}}
-                        </div>
+                <form id="filter-form" class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1 min-w-0">
+                        <input type="text" name="search" value="{{ request('search') }}"
+                            placeholder="Cari nama atau email..." class="form-input">
                     </div>
-                    <div class="flex gap-3">
-                        <select name="role" class="form-input w-auto">
+                    <div class="w-full sm:w-auto">
+                        <select name="role" class="form-input">
                             <option value="">Semua Role</option>
-                            <option value="superadmin" {{ request('role') == 'superadmin' ? 'selected' : '' }}>Super Admin
-                            </option>
+                            <option value="superadmin" {{ request('role') == 'superadmin' ? 'selected' : '' }}>Super Admin</option>
                             <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                         </select>
-                        <button type="submit" class="btn btn-primary">Filter</button>
-                        <a href="{{ route('admin.admins.index') }}" class="btn btn-secondary">Reset</a>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-1 sm:flex-initial">Filter</button>
+                        <a href="{{ route('admin.admins.index') }}" class="btn btn-secondary flex-1 sm:flex-initial">Reset</a>
                     </div>
                 </form>
             </div>
@@ -54,7 +48,8 @@
 
         <!-- Table -->
         <div class="card">
-            <div class="table-container">
+            <!-- Desktop Table View -->
+            <div class="table-container hidden md:block">
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
@@ -149,6 +144,94 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Card View -->
+            <div class="md:hidden space-y-3">
+                @forelse($admins as $admin)
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-5 border border-gray-100 mb-3">
+                        <div class="flex items-start gap-3 mb-4">
+                            <div
+                                class="w-14 h-14 rounded-full {{ $admin->role == 'superadmin' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-[#386158] to-[#557c70]' }} flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 shadow-sm">
+                                {{ $admin->initials }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-gray-900 truncate text-base">{{ $admin->name }}</h3>
+                                <p class="text-sm text-gray-500">#{{ $admin->id }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-sm bg-gray-50 rounded-lg p-3">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="text-gray-700 truncate font-medium">{{ $admin->email }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                                <span class="badge {{ $admin->role == 'superadmin' ? 'bg-purple-100 text-purple-700' : 'badge-primary' }}">
+                                    {{ ucfirst($admin->role) }}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                </svg>
+                                <button onclick="toggleStatus({{ $admin->id }})"
+                                    class="badge {{ $admin->is_active ? 'badge-success' : 'badge-danger' }} cursor-pointer hover:opacity-80"
+                                    {{ $admin->id === Auth::guard('admin')->id() ? 'disabled' : '' }}>
+                                    {{ $admin->is_active ? 'Active' : 'Inactive' }}
+                                </button>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="text-gray-700">{{ $admin->last_login_at ? $admin->last_login_at->diffForHumans() : 'Never' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                            <button onclick="showEditModal({{ $admin->id }})"
+                                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#386158] text-white rounded-lg font-medium hover:bg-[#2d4a43] active:scale-95 transition-all duration-200 shadow-sm touch-manipulation"
+                                title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                <span>Edit</span>
+                            </button>
+                            @if ($admin->id !== Auth::guard('admin')->id())
+                                <button onclick="deleteAdmin({{ $admin->id }}, '{{ $admin->name }}')"
+                                    class="btn-icon text-red-600 hover:bg-red-50 h-9 w-9"
+                                    title="Hapus">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="card text-center py-8">
+                        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <p class="text-gray-500">Tidak ada data admin</p>
+                    </div>
+                @endforelse
             </div>
 
             <!-- Pagination -->

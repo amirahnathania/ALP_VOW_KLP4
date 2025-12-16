@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('nama_foto');
             $table->string('tipe_foto');
             $table->timestamps();
-            $table->unique(['id_kegiatan', 'id_profil']);
+            // $table->unique(['id_kegiatan', 'id_profil']);
             $table->foreign('id_kegiatan')->references('id')->on('kegiatan');
             $table->foreign('id_profil')->references('id')->on('profil');
         });

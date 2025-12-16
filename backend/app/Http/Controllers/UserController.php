@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
+use App\Models\Profil;
+use App\Models\Jabatan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -13,10 +18,11 @@ class UserController extends Controller
     public function index()
     {
         try {
-            $users = User::with('profil')->get();
+            // Eager-load profil and nested jabatan to provide jabatan details
+            $users = User::with('profil.jabatan')->get();
             return response()->json([
                 'success' => true,
-                'data' => $users
+                'data' => UserResource::collection($users)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -28,59 +34,10 @@ class UserController extends Controller
     }
 
     // POST /api/users (REGISTER)
-    public function store(Request $request)
+    public function store(RegisterRequest $request)
     {
-        $validated = $request->validate([
-            'nama_pengguna' => [
-                'required',
-                'string',
-                'min:3',
-                'max:50',
-                'regex:/^[a-zA-Z\s\.]+$/'
-            ],
-            'email' => [
-                'required',
-                'email',
-                'max:100',
-                'unique:users,email',
-                function ($attribute, $value, $fail) {
-                    $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
-                    $domain = substr(strrchr($value, "@"), 1);
+        $validated = $request->validated();
 
-                    if (!in_array($domain, $allowedDomains)) {
-                        $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
-                    }
-                }
-            ],
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'max:32',
-                'confirmed',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/'
-            ],
-            'password_confirmation' => 'required|string|same:password'
-        ], [
-            'nama_pengguna.required' => 'Nama pengguna wajib diisi',
-            'nama_pengguna.min' => 'Nama pengguna minimal 3 karakter',
-            'nama_pengguna.max' => 'Nama pengguna maksimal 50 karakter',
-            'nama_pengguna.regex' => 'Nama hanya boleh mengandung huruf, spasi, dan titik',
-
-            'email.required' => 'Email wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'email.max' => 'Email maksimal 100 karakter',
-            'email.unique' => 'Email sudah terdaftar',
-
-            'password.required' => 'Password wajib diisi',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.max' => 'Password maksimal 32 karakter',
-            'password.confirmed' => 'Konfirmasi password tidak sesuai',
-            'password.regex' => 'Password harus mengandung minimal 1 huruf besar, 1 huruf kecil, dan 1 angka',
-
-            'password_confirmation.required' => 'Konfirmasi password wajib diisi',
-            'password_confirmation.same' => 'Konfirmasi password tidak sesuai'
-        ]);
 
         try {
             $user = User::create([
@@ -91,16 +48,34 @@ class UserController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            // Ensure the user has a profil. Use an active Jabatan if available, otherwise the first Jabatan.
+            try {
+                if (!Profil::userHasProfile($user->id)) {
+                    $jabatan = Jabatan::aktif()->first() ?? Jabatan::first();
+                    if (!$jabatan) {
+                        // create a fallback jabatan so a profil can be created
+                        $jabatan = Jabatan::create([
+                            'jabatan' => 'Anggota Sementara',
+                            'awal_jabatan' => now()->format('Y-m-d'),
+                            'akhir_jabatan' => null,
+                        ]);
+                    }
+                    Profil::create([
+                        'id_user' => $user->id,
+                        'id_jabatan' => $jabatan->id,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Non-fatal: we still return success
+            }
+
+            // Reload user with profil relation to ensure resource contains it
+            $user = User::with('profil.jabatan')->find($user->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Registrasi berhasil',
-                'data' => [
-                    'id' => $user->id,
-                    'nama_pengguna' => $user->nama_pengguna,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'created_at' => $user->created_at
-                ],
+                'data' => new UserResource($user),
                 'token' => $token,
                 'token_type' => 'Bearer',
             ], 201);
@@ -117,7 +92,8 @@ class UserController extends Controller
     public function show($id)
     {
         try {
-            $user = User::with('profil')->find($id);
+            // Eager-load profil and nested jabatan so frontend receives jabatan data
+            $user = User::with('profil.jabatan')->find($id);
 
             if (!$user) {
                 return response()->json([
@@ -128,7 +104,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $user
+                'data' => new UserResource($user)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -212,7 +188,7 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Data pengguna berhasil diperbarui',
-                'data' => $user
+                'data' => new UserResource($user)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -259,35 +235,10 @@ class UserController extends Controller
     }
 
     // POST /api/login
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $validated = $request->validate([
-            'email' => [
-                'required',
-                'email',
-                'max:100',
-                function ($attribute, $value, $fail) {
-                    $allowedDomains = ['ketua.ac.id', 'gapoktan.ac.id'];
-                    $domain = substr(strrchr($value, "@"), 1);
-                    if (!in_array($domain, $allowedDomains)) {
-                        $fail('email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
-                    }
-                }
-            ],
-            'password' => [
-                'required',
-                'string',
-                'min:8',
-                'max:32'
-            ]
-        ], [
-            'email.required' => 'Email wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'email.max' => 'Email maksimal 100 karakter',
-            'password.required' => 'Password wajib diisi',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.max' => 'Password maksimal 32 karakter'
-        ]);
+        $validated = $request->validated();
+
 
         try {
             $user = User::where('email', $validated['email'])->first();
@@ -308,15 +259,33 @@ class UserController extends Controller
 
             $token = $user->createToken('auth_token', ['*'], now()->addDays(7))->plainTextToken;
 
+            // Auto-create profil if missing (choose an active Jabatan or fallback to first)
+            try {
+                if (!Profil::userHasProfile($user->id)) {
+                    $jabatan = Jabatan::aktif()->first() ?? Jabatan::first();
+                    if (!$jabatan) {
+                        $jabatan = Jabatan::create([
+                            'jabatan' => 'Anggota Sementara',
+                            'awal_jabatan' => now()->format('Y-m-d'),
+                            'akhir_jabatan' => null,
+                        ]);
+                    }
+                    Profil::create([
+                        'id_user' => $user->id,
+                        'id_jabatan' => $jabatan->id,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // ignore profil create errors for now
+            }
+
+            // Re-load the user with profil.jabatan to ensure resource includes it
+            $user = User::with('profil.jabatan')->find($user->id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login berhasil',
-                'data' => [
-                    'id' => $user->id,
-                    'nama_pengguna' => $user->nama_pengguna,
-                    'email' => $user->email,
-                    'role' => $user->role
-                ],
+                'data' => new UserResource($user),
                 'token' => $token,
                 'token_type' => 'Bearer',
                 'expires_in' => 604800
@@ -343,6 +312,53 @@ class UserController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal logout',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // GET /api/users/{id}/ensure-profil
+    public function ensureProfil($id)
+    {
+        try {
+            $user = User::find($id);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pengguna tidak ditemukan'
+                ], 404);
+            }
+
+            try {
+                if (!Profil::userHasProfile($user->id)) {
+                    $jabatan = Jabatan::aktif()->first() ?? Jabatan::first();
+                    if (!$jabatan) {
+                        $jabatan = Jabatan::create([
+                            'jabatan' => 'Anggota Sementara',
+                            'awal_jabatan' => now()->format('Y-m-d'),
+                            'akhir_jabatan' => null,
+                        ]);
+                    }
+                    Profil::create([
+                        'id_user' => $user->id,
+                        'id_jabatan' => $jabatan->id,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // ignore creation errors
+            }
+
+            // reload user with relation to ensure resource contains profil
+            $user = User::with('profil.jabatan')->find($user->id);
+
+            return response()->json([
+                'success' => true,
+                'data' => new UserResource($user)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memastikan profil pengguna',
                 'error' => $e->getMessage()
             ], 500);
         }

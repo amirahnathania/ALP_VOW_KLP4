@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Jabatan;
+use App\Http\Requests\JabatanRequest;
+use App\Http\Resources\JabatanResource;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -15,7 +17,7 @@ class JabatanController extends Controller
             $jabatan = Jabatan::all();
             return response()->json([
                 'success' => true,
-                'data' => $jabatan,
+                'data' => JabatanResource::collection($jabatan),
                 'count' => $jabatan->count()
             ]);
         } catch (\Exception $e) {
@@ -119,16 +121,17 @@ class JabatanController extends Controller
 
             $jabatan = Jabatan::create($validated);
 
+            $jabatan->durasi = [
+                'tahun' => $diff->y,
+                'bulan' => $diff->m,
+                'hari' => $diff->d,
+                'total_hari' => $totalHari
+            ];
+
             return response()->json([
                 'success' => true,
                 'message' => 'Jabatan berhasil dibuat',
-                'data' => $jabatan,
-                'durasi' => [
-                    'tahun' => $diff->y,
-                    'bulan' => $diff->m,
-                    'hari' => $diff->d,
-                    'total_hari' => $totalHari
-                ]
+                'data' => new JabatanResource($jabatan)
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -156,18 +159,17 @@ class JabatanController extends Controller
             $akhir = Carbon::parse($jabatan->akhir_jabatan);
             $diff = $akhir->diff($awal);
 
-            $jabatanData = $jabatan->toArray();
-            $jabatanData['durasi'] = [
+            $jabatan->durasi = [
                 'tahun' => $diff->y,
                 'bulan' => $diff->m,
                 'hari' => $diff->d,
                 'total_hari' => $diff->days
             ];
-            $jabatanData['status'] = $this->getStatusJabatan($awal, $akhir);
+            $jabatan->status = $this->getStatusJabatan($awal, $akhir);
 
             return response()->json([
                 'success' => true,
-                'data' => $jabatanData
+                'data' => new JabatanResource($jabatan)
             ]);
         } catch (\Exception $e) {
             return response()->json([

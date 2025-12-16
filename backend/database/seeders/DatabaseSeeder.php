@@ -25,18 +25,18 @@ class DatabaseSeeder extends Seeder
         $jabatanGapoktan = Jabatan::create([
             'jabatan' => 'Anggota Gapoktan',
             'awal_jabatan' => Carbon::now()->format('Y-m-d'),
-            'akhir_jabatan' => Carbon::now()->addYears(2)->format('Y-m-d'),
+            'akhir_jabatan' => Carbon::now()->addYears(4)->format('Y-m-d'),
         ]);
 
         // Create Users
         $userKetua = User::create([
-            'nama_pengguna' => 'Ketua Test',
+            'nama_pengguna' => 'Ketua',
             'email' => 'ketua@ketua.ac.id',
             'password' => 'Password123',
         ]);
 
         $userGapoktan = User::create([
-            'nama_pengguna' => 'Gapoktan Test',
+            'nama_pengguna' => 'Gapoktan',
             'email' => 'gapoktan@gapoktan.ac.id',
             'password' => 'Password123',
         ]);
@@ -51,5 +51,12 @@ class DatabaseSeeder extends Seeder
             'id_user' => $userGapoktan->id,
             'id_jabatan' => $jabatanGapoktan->id,
         ]);
+
+        // Seed kegiatan related to created profils
+        $this->call(\Database\Seeders\KegiatanSeeder::class);
+        // Seed Admin users
+        $this->call(AdminSeeder::class);
+        // Seed bukti foto for existing kegiatan (use images in public/images)
+        $this->call(BuktiKegiatanSeeder::class);
     }
 }

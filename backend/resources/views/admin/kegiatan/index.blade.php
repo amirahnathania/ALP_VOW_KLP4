@@ -35,49 +35,43 @@
         <!-- Filters -->
         <div class="card">
             <div class="card-body">
-                <form id="filter-form" class="flex flex-col lg:flex-row gap-4">
-                    <div class="flex-1">
-                        <div class="relative">
-                            <input type="text" name="search" value="{{ request('search') }}"
-                                placeholder="Cari jenis kegiatan..." class="form-input pl-10">
-                            {{-- <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg> --}}
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-3">
-                        <select name="jenis" class="form-input w-auto">
+                <form id="filter-form" class="space-y-3">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" name="search" value="{{ request('search') }}"
+                            placeholder="Cari jenis kegiatan..." class="form-input w-full sm:min-w-[300px] sm:flex-1">
+
+                        <select name="jenis" class="form-input w-full sm:w-auto">
                             <option value="">Semua Jenis</option>
                             @foreach ($jenisKegiatans as $jenis)
                                 <option value="{{ $jenis }}" {{ request('jenis') == $jenis ? 'selected' : '' }}>
-                                    {{ $jenis }}</option>
+                                    {{ $jenis }}
+                                </option>
                             @endforeach
                         </select>
-                        <select name="status" class="form-input w-auto">
+
+                        <select name="status" class="form-input w-full sm:w-auto">
                             <option value="">Semua Status</option>
                             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Aktif</option>
-                            <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Selesai
-                            </option>
+                            <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Selesai</option>
                         </select>
-                        <div class="relative">
-                            <input type="date" name="date_from" id="date_from" value="{{ request('date_from') }}"
-                                class="form-input w-auto peer" required>
-                            <label for="date_from"
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:text-xs peer-focus:text-[#0b1319] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#0b1319] bg-white px-1">
-                                Dari</label>
+
+                        <div class="relative w-full sm:w-auto">
+                            <input type="date" name="date_from" value="{{ request('date_from') }}"
+                                class="form-input w-full peer">
+                            <label class="absolute left-3 -top-2 bg-white px-1 text-xs text-gray-600">Mulai</label>
                         </div>
-                        <div class="relative">
-                            <input type="date" name="date_to" id="date_to" value="{{ request('date_to') }}"
-                                class="form-input w-auto peer" required>
-                            <label for="date_to"
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-all duration-200 peer-focus:top-0 peer-focus:text-xs peer-focus:text-[#0b1319] peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-[#0b1319] bg-white px-1">
-                                Sampai</label>
+
+                        <div class="relative w-full sm:w-auto">
+                            <input type="date" name="date_to" value="{{ request('date_to') }}"
+                                class="form-input w-full peer">
+                            <label class="absolute left-3 -top-2 bg-white px-1 text-xs text-gray-600">Akhir</label>
                         </div>
-                        <button type="submit" class="btn btn-primary">Filter</button>
-                        <a href="{{ route('admin.kegiatan.index') }}" class="btn btn-secondary">Reset</a>
-                    </div>
+
+                        <div class="flex gap-2 sm:gap-3">
+                            <button type="submit" class="btn btn-primary flex-1 sm:flex-initial whitespace-nowrap">Filter</button>
+                            <a href="{{ route('admin.kegiatan.index') }}" class="btn btn-secondary flex-1 sm:flex-initial whitespace-nowrap">Reset</a>
+                        </div>
+                    </input>
                 </form>
             </div>
         </div>
@@ -96,8 +90,14 @@
         </div>
 
         <!-- Table -->
-        <div class="card">
-            <div class="table-container">
+        <div class="card" id="kegiatan-card">
+            <!-- Loading Skeleton (only shows if there's lag) -->
+            <div id="loading-skeleton" class="hidden">
+                <x-skeleton type="table" :rows="5" />
+            </div>
+
+            <!-- Desktop Table View -->
+            <div class="table-container hidden md:block">
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
@@ -221,6 +221,113 @@
                 </table>
             </div>
 
+            <!-- Mobile Card View -->
+            <div class="md:hidden space-y-3">
+                @forelse($kegiatans as $kegiatan)
+                    @php $isActiveMobile = \Carbon\Carbon::parse($kegiatan->tanggal_selesai)->isFuture(); @endphp
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 p-5 border border-gray-100" data-id="{{ $kegiatan->id }}">
+                        <div class="flex items-start gap-3 mb-4">
+                            <input type="checkbox" class="checkbox row-checkbox mt-1" value="{{ $kegiatan->id }}"
+                                onchange="updateBulkActions()">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-gray-900 text-base">{{ $kegiatan->jenis_kegiatan }}</h3>
+                                <p class="text-sm text-gray-500">#{{ $kegiatan->id }}</p>
+                            </div>
+                            <span class="badge flex-shrink-0 {{ $isActiveMobile ? 'badge-success' : 'badge-secondary' }}">
+                                {{ $isActiveMobile ? 'Aktif' : 'Selesai' }}
+                            </span>
+                        </div>
+
+                        <div class="space-y-3 text-sm bg-gray-50 rounded-lg p-3">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-500">Jenis Kegiatan</p>
+                                    <p class="text-gray-700 font-medium truncate">{{ $kegiatan->jenis_kegiatan }}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-500">Profil / Kelompok</p>
+                                    <p class="text-gray-700">{{ $kegiatan->profil->nama_kelompok ?? $kegiatan->profil->user->nama_pengguna ?? '-' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-500">Tanggal</p>
+                                    <p class="text-gray-700">{{ \Carbon\Carbon::parse($kegiatan->tanggal_mulai)->format('d M Y') }} - {{ \Carbon\Carbon::parse($kegiatan->tanggal_selesai)->format('d M Y') }}</p>
+                                </div>
+                            </div>
+
+                            @if($kegiatan->keterangan)
+                            <div class="flex items-start gap-3">
+                                <svg class="w-4 h-4 text-[#386158] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-500">Keterangan</p>
+                                    <p class="text-gray-700 line-clamp-2">{{ $kegiatan->keterangan }}</p>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                            <button onclick="showKegiatan({{ $kegiatan->id }})"
+                                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 hover:border-[#386158] hover:text-[#386158] active:scale-95 transition-all duration-200 touch-manipulation"
+                                title="Lihat">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <span>Lihat</span>
+                            </button>
+                            <button onclick="showEditModal({{ $kegiatan->id }})"
+                                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#386158] text-white rounded-lg font-medium hover:bg-[#2d4a43] active:scale-95 transition-all duration-200 shadow-sm touch-manipulation"
+                                title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                <span>Edit</span>
+                            </button>
+                            <button onclick="deleteKegiatan({{ $kegiatan->id }})"
+                                class="p-2.5 bg-white border border-gray-300 rounded-lg text-red-600 hover:bg-red-50 hover:border-red-300 active:scale-95 transition-all duration-200 touch-manipulation"
+                                title="Hapus">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                @empty
+                    <div class="card text-center py-8">
+                        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        <p class="text-gray-500">Tidak ada data kegiatan</p>
+                    </div>
+                @endforelse
+            </div>
+
             <!-- Pagination -->
             @if ($kegiatans->hasPages())
                 <div class="px-4 py-3 border-t border-gray-200">
@@ -238,6 +345,47 @@
 
 @push('scripts')
     <script>
+        // Smart skeleton loading - only show if content takes time to render
+        (function() {
+            const skeleton = document.getElementById('loading-skeleton');
+            const card = document.getElementById('kegiatan-card');
+            let loadingTimeout;
+            let isContentLoaded = false;
+
+            // Show skeleton only if content takes more than 200ms to load
+            loadingTimeout = setTimeout(function() {
+                if (!isContentLoaded && skeleton && card) {
+                    skeleton.classList.remove('hidden');
+                    // Hide all children except skeleton using inline styles
+                    Array.from(card.children).forEach(child => {
+                        if (child.id !== 'loading-skeleton') {
+                            child.style.display = 'none';
+                        }
+                    });
+                }
+            }, 200);
+
+            // Mark content as loaded when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    isContentLoaded = true;
+                    clearTimeout(loadingTimeout);
+                    if (skeleton) skeleton.classList.add('hidden');
+                    if (card) {
+                        Array.from(card.children).forEach(child => {
+                            if (child.id !== 'loading-skeleton') {
+                                child.style.display = '';
+                            }
+                        });
+                    }
+                });
+            } else {
+                // DOM already loaded
+                isContentLoaded = true;
+                clearTimeout(loadingTimeout);
+            }
+        })();
+
         // Toggle select all
         function toggleSelectAll() {
             const selectAll = document.getElementById('select-all');
@@ -251,11 +399,17 @@
             const checked = document.querySelectorAll('.row-checkbox:checked');
             const bulkActions = document.getElementById('bulk-actions');
             const selectedCount = document.getElementById('selected-count');
+            const selectAll = document.getElementById('select-all');
+            const allCheckboxes = document.querySelectorAll('.row-checkbox');
 
             if (checked.length > 0) {
                 bulkActions.classList.remove('hidden');
                 bulkActions.classList.add('flex');
-                selectedCount.textContent = checked.length;
+                // Only divide by 2 if all checkboxes are checked (select-all was used)
+                const count = (selectAll && selectAll.checked && checked.length === allCheckboxes.length)
+                    ? checked.length / 2
+                    : checked.length;
+                selectedCount.textContent = count;
             } else {
                 bulkActions.classList.add('hidden');
                 bulkActions.classList.remove('flex');
@@ -409,7 +563,7 @@
         // Show edit modal
         async function showEditModal(id) {
             try {
-                const response = await fetchApi(`/admin/kegiatan/${id}/edit`);
+                const response = await fetchApi(`/admin/kegiatan/${id}`);
                 const kegiatan = response.data;
 
                 showModal({
@@ -429,10 +583,11 @@
             const form = document.getElementById('kegiatan-form');
             const formData = new FormData(form);
             const data = Object.fromEntries(formData);
+            data._method = 'PUT';
 
             try {
                 const response = await fetchApi(`/admin/kegiatan/${id}`, {
-                    method: 'PUT',
+                    method: 'POST',
                     body: JSON.stringify(data)
                 });
 
@@ -449,7 +604,8 @@
             confirmDialog('Apakah Anda yakin ingin menghapus kegiatan ini?', async () => {
                 try {
                     const response = await fetchApi(`/admin/kegiatan/${id}`, {
-                        method: 'DELETE'
+                        method: 'POST',
+                        body: JSON.stringify({ _method: 'DELETE' })
                     });
 
                     showToast(response.message, 'success');
@@ -479,5 +635,15 @@
                 }
             });
         }
+
+        // Auto-trigger modal if action parameter is present
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+
+            if (action === 'create') {
+                showCreateModal();
+            }
+        });
     </script>
 @endpush

@@ -13,8 +13,9 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   // Controller untuk form Masuk
   final TextEditingController _loginEmailController = TextEditingController();
-  final TextEditingController _loginPasswordController = TextEditingController();
-  
+  final TextEditingController _loginPasswordController =
+      TextEditingController();
+
   // State variables
   bool _isLoading = false;
   bool _showLoginPassword = false;
@@ -32,26 +33,28 @@ class _AuthPageState extends State<AuthPage> {
   // ================== FUNGSI LOGIN BIASA ==================
   Future<void> _handleLogin() async {
     final email = _loginEmailController.text.trim();
-    
+
     if (!_isValidEmail(email)) {
       _showError('Email tidak valid');
       return;
     }
-    
+
     // Validasi domain email
     final userRole = _getUserRole(email);
     if (userRole == 'unknown') {
-      _showError('Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id');
+      _showError(
+        'Email harus menggunakan domain @ketua.ac.id atau @gapoktan.ac.id',
+      );
       return;
     }
-    
+
     if (_loginPasswordController.text.isEmpty) {
       _showError('Password harus diisi');
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final res = await ApiService.login(
         email: email,
@@ -59,29 +62,66 @@ class _AuthPageState extends State<AuthPage> {
       );
 
       if (res['success'] == true) {
-        // Tambahkan role ke data user
-        final userData = Map<String, dynamic>.from(res['data']);
-        userData['role'] = userRole;
-        
+        // Persist token for future API calls (guard against plugin errors)
+        if (res['token'] != null) {
+          try {
+            await ApiService.saveToken(res['token']);
+          } catch (e) {
+            debugPrint('Warning: failed to persist token: $e');
+          }
+        }
+        // Fetch fully-loaded user (with profil.jabatan) and navigate
+        final loginUser = Map<String, dynamic>.from(res['data'] ?? {});
+        final userId = loginUser['id'] as int?;
+        Map<String, dynamic> fullUser = loginUser;
+
+        if (userId != null) {
+          try {
+            final fullResp = await ApiService.getUserById(userId, res['token']);
+            if (fullResp['success'] == true && fullResp['data'] != null) {
+              fullUser = Map<String, dynamic>.from(fullResp['data']);
+            }
+          } catch (e) {
+            debugPrint('Failed to fetch full user after login: $e');
+          }
+        }
+
+        // If backend returned nested profil->jabatan, flatten common date fields
+        try {
+          final profil = fullUser['profil'];
+          if (profil != null && profil is Map) {
+            final jab = profil['jabatan'];
+            if (jab != null && jab is Map) {
+              // snake_case keys expected by some gapoktan UI
+              fullUser['awal_jabatan'] =
+                  jab['awal_jabatan'] ?? jab['awalJabatan'];
+              fullUser['akhir_jabatan'] =
+                  jab['akhir_jabatan'] ?? jab['akhirJabatan'];
+              // camelCase as well
+              fullUser['awalJabatan'] =
+                  jab['awalJabatan'] ?? jab['awal_jabatan'];
+              fullUser['akhirJabatan'] =
+                  jab['akhirJabatan'] ?? jab['akhir_jabatan'];
+            }
+          }
+        } catch (_) {}
+
+        fullUser['role'] = userRole;
+
         // Navigasi berdasarkan role
         if (userRole == 'ketua') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => MainLayoutScreen(
-                user: userData,
-                token: res['token'],
-              ),
+              builder: (_) =>
+                  MainLayoutScreen(user: fullUser, token: res['token']),
             ),
           );
         } else if (userRole == 'gapoktan') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => HomePage(
-                user: userData,
-                token: res['token'],
-              ),
+              builder: (_) => HomePage(user: fullUser, token: res['token']),
             ),
           );
         }
@@ -101,7 +141,7 @@ class _AuthPageState extends State<AuthPage> {
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
-  
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -121,10 +161,7 @@ class _AuthPageState extends State<AuthPage> {
         children: [
           // Background image
           Positioned.fill(
-            child: Image.asset(
-              "assets/BG_Desa_Sengka.jpeg",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset("assets/BG_Desa_Sengka.jpeg", fit: BoxFit.cover),
           ),
 
           // Gradient overlay
@@ -148,12 +185,9 @@ class _AuthPageState extends State<AuthPage> {
             children: [
               const SizedBox(height: 40),
               Container(
-                height: 180, 
+                height: 180,
                 width: MediaQuery.of(context).size.width * 0.9,
-                child: Image.asset(
-                  'assets/logo.png',
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
               ),
 
               const SizedBox(height: 8),
@@ -164,7 +198,9 @@ class _AuthPageState extends State<AuthPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(40),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -176,23 +212,18 @@ class _AuthPageState extends State<AuthPage> {
                           color: Color(0xFF4A3F2C),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
+
                       const Text(
                         "Silakan masuk dengan akun Anda",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
 
                       const SizedBox(height: 25),
 
                       Expanded(
-                        child: SingleChildScrollView(
-                          child: buildLoginForm(),
-                        ),
+                        child: SingleChildScrollView(child: buildLoginForm()),
                       ),
                     ],
                   ),
@@ -265,10 +296,7 @@ class _AuthPageState extends State<AuthPage> {
               Expanded(
                 child: Text(
                   "Gunakan email dengan domain:\n• @ketua.ac.id untuk Ketua Kelompok Tani\n• @gapoktan.ac.id untuk Gabungan Kelompok Tani",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ),
             ],
@@ -313,7 +341,10 @@ class _AuthPageState extends State<AuthPage> {
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -344,7 +375,10 @@ class _AuthPageState extends State<AuthPage> {
           hintText: hint,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 20,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: Colors.grey.shade400),

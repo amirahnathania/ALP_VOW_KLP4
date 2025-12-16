@@ -79,22 +79,70 @@ mixin _HomeModalsMixin on _HomePageStateBase {
     final keteranganController = TextEditingController(
       text: existing?.keterangan ?? '',
     );
-    
+
     // State untuk dropdown
     String? selectedJenisKegiatan = existing?.jenisPenanaman;
     String? selectedPestisida = existing?.jenisPestisida;
     String? selectedPupuk;
     String? selectedTarget = existing?.targetPenanaman;
-    
-    // Jika edit dan ada jenis pestisida, cek apakah itu sebenarnya pupuk
+
+    // Normalize dropdown initial values so they exist in options lists.
+    String? _normalize(String? value, List<String> options) {
+      if (value == null) return null;
+      if (options.contains(value)) return value;
+      // If value is numeric (e.g. '100' or 100), try to find matching option that starts with that number
+      final n = int.tryParse(value.toString());
+      if (n != null) {
+        for (final opt in options) {
+          if (opt.startsWith(n.toString())) return opt;
+        }
+      }
+      // As a fallback, try case-insensitive match of beginning
+      final lower = value.toString().toLowerCase();
+      for (final opt in options) {
+        if (opt.toLowerCase().startsWith(lower) || opt.toLowerCase() == lower)
+          return opt;
+      }
+      return null;
+    }
+
+    selectedJenisKegiatan = _normalize(
+      selectedJenisKegiatan,
+      _jenisKegiatanOptions,
+    );
+    selectedPestisida = _normalize(selectedPestisida, _jenisPestisidaOptions);
+    // if existing had pestisida stored as a pupuk name (legacy), map it into pupuk
     if (existing != null && existing.jenisPestisida.isNotEmpty) {
-      if (_jenisPupukOptions.contains(existing.jenisPestisida) || 
+      if (_jenisPupukOptions.contains(existing.jenisPestisida) ||
           existing.jenisPenanaman == 'Pemupukan') {
-        selectedPupuk = existing.jenisPestisida;
+        selectedPupuk = _normalize(existing.jenisPestisida, _jenisPupukOptions);
         selectedPestisida = null;
       }
     }
-    
+    selectedPupuk = _normalize(selectedPupuk, _jenisPupukOptions);
+    selectedTarget = _normalize(selectedTarget, _targetPenanamanOptions);
+
+    // Jika edit dan ada jenis pestisida, cek apakah itu sebenarnya pupuk
+    if (existing != null && existing.jenisPestisida.isNotEmpty) {
+      if (_jenisPupukOptions.contains(existing.jenisPestisida)) {
+        // Exact match present in options
+        selectedPupuk = existing.jenisPestisida;
+        selectedPestisida = null;
+      } else if (existing.jenisPenanaman == 'Pemupukan') {
+        // For legacy records where pupuk was saved in pestisida field,
+        // attempt to normalize into available pupuk options. Only assign
+        // when normalization finds a matching option to avoid Dropdown errors.
+        final normalized = _normalize(
+          existing.jenisPestisida,
+          _jenisPupukOptions,
+        );
+        if (normalized != null) {
+          selectedPupuk = normalized;
+          selectedPestisida = null;
+        }
+      }
+    }
+
     DateTimeRange? range = existing != null
         ? DateTimeRange(start: existing.startDate, end: existing.endDate)
         : null;
@@ -153,15 +201,17 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                           range!.end,
                           exceptId: existing?.id,
                         );
-                    
+
                     final jenisKegiatan = selectedJenisKegiatan ?? '';
                     final showPestisida = _showPestisidaField(jenisKegiatan);
                     final showPupuk = _showPupukField(jenisKegiatan);
                     final showTarget = _showTargetField(jenisKegiatan);
                     final targetRequired = _isTargetRequired(jenisKegiatan);
-                    final pestisidaRequired = _isPestisidaRequired(jenisKegiatan);
+                    final pestisidaRequired = _isPestisidaRequired(
+                      jenisKegiatan,
+                    );
                     final targetLabel = _getTargetLabel(jenisKegiatan);
-                    
+
                     return SingleChildScrollView(
                       child: Form(
                         key: formKey,
@@ -188,7 +238,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               ],
                             ),
                             const SizedBox(height: 20),
-                            
+
                             // 1. Jenis Kegiatan (Dropdown)
                             _buildDropdownField(
                               label: 'Jenis Kegiatan',
@@ -209,7 +259,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                 });
                               },
                             ),
-                            
+
                             // 2. Tanggal (Rentang)
                             GestureDetector(
                               onTap: () async {
@@ -230,7 +280,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            
+
                             // 3. Waktu Mulai & Selesai
                             Row(
                               children: [
@@ -318,7 +368,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            
+
                             // 4. Jenis Pestisida (Dropdown - kondisional)
                             if (showPestisida)
                               _buildDropdownField(
@@ -327,12 +377,15 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                 items: _jenisPestisidaOptions,
                                 hint: 'Pilih Jenis Pestisida',
                                 isRequired: pestisidaRequired,
-                                requiredHint: 'Wajib diisi untuk kegiatan Penyemprotan',
+                                requiredHint:
+                                    'Wajib diisi untuk kegiatan Penyemprotan',
                                 onChanged: (value) {
-                                  setSheetState(() => selectedPestisida = value);
+                                  setSheetState(
+                                    () => selectedPestisida = value,
+                                  );
                                 },
                               ),
-                            
+
                             // 4b. Jenis Pupuk (Dropdown - kondisional untuk Pemupukan)
                             if (showPupuk)
                               _buildDropdownField(
@@ -341,12 +394,13 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                 items: _jenisPupukOptions,
                                 hint: 'Pilih Jenis Pupuk',
                                 isRequired: true,
-                                requiredHint: 'Wajib diisi untuk kegiatan Pemupukan',
+                                requiredHint:
+                                    'Wajib diisi untuk kegiatan Pemupukan',
                                 onChanged: (value) {
                                   setSheetState(() => selectedPupuk = value);
                                 },
                               ),
-                            
+
                             // 5. Target Penanaman (Dropdown - kondisional)
                             if (showTarget)
                               _buildDropdownField(
@@ -355,12 +409,14 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                 items: _targetPenanamanOptions,
                                 hint: 'Pilih $targetLabel',
                                 isRequired: targetRequired,
-                                requiredHint: targetRequired ? 'Wajib diisi untuk kegiatan Penanaman' : null,
+                                requiredHint: targetRequired
+                                    ? 'Wajib diisi untuk kegiatan Penanaman'
+                                    : null,
                                 onChanged: (value) {
                                   setSheetState(() => selectedTarget = value);
                                 },
                               ),
-                            
+
                             // 6. Keterangan (Free Text - Opsional)
                             _buildTextAreaField(
                               label: 'Keterangan',
@@ -368,7 +424,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               hint: 'Masukkan catatan tambahan (opsional)',
                               isRequired: false,
                             ),
-                            
+
                             if (overlapWarning)
                               Container(
                                 margin: const EdgeInsets.only(top: 12),
@@ -395,10 +451,13 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                               ),
                               onPressed: () {
                                 // Validasi field wajib
-                                if (selectedJenisKegiatan == null || selectedJenisKegiatan!.isEmpty) {
+                                if (selectedJenisKegiatan == null ||
+                                    selectedJenisKegiatan!.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Jenis Kegiatan wajib dipilih'),
+                                      content: Text(
+                                        'Jenis Kegiatan wajib dipilih',
+                                      ),
                                     ),
                                   );
                                   return;
@@ -428,42 +487,53 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                   );
                                   return;
                                 }
-                                
+
                                 // Validasi field kondisional
-                                if (_isTargetRequired(selectedJenisKegiatan!) && 
-                                    (selectedTarget == null || selectedTarget!.isEmpty)) {
+                                if (_isTargetRequired(selectedJenisKegiatan!) &&
+                                    (selectedTarget == null ||
+                                        selectedTarget!.isEmpty)) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Target Penanaman wajib dipilih'),
+                                      content: Text(
+                                        'Target Penanaman wajib dipilih',
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                if (_isPestisidaRequired(selectedJenisKegiatan!) && 
-                                    (selectedPestisida == null || selectedPestisida!.isEmpty)) {
+                                if (_isPestisidaRequired(
+                                      selectedJenisKegiatan!,
+                                    ) &&
+                                    (selectedPestisida == null ||
+                                        selectedPestisida!.isEmpty)) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Jenis Pestisida wajib dipilih'),
+                                      content: Text(
+                                        'Jenis Pestisida wajib dipilih',
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                if (_showPupukField(selectedJenisKegiatan!) && 
-                                    (selectedPupuk == null || selectedPupuk!.isEmpty)) {
+                                if (_showPupukField(selectedJenisKegiatan!) &&
+                                    (selectedPupuk == null ||
+                                        selectedPupuk!.isEmpty)) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Jenis Pupuk wajib dipilih'),
+                                      content: Text(
+                                        'Jenis Pupuk wajib dipilih',
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                
+
                                 final currentRange = range!;
                                 // Untuk pestisida, simpan pupuk juga di field yang sama jika pemupukan
-                                final pestisidaValue = showPupuk 
-                                    ? (selectedPupuk ?? '') 
+                                final pestisidaValue = showPupuk
+                                    ? (selectedPupuk ?? '')
                                     : (selectedPestisida ?? '');
-                                    
+
                                 final kegiatanBaru = Kegiatan(
                                   id:
                                       existing?.id ??
@@ -479,20 +549,180 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                                   targetPenanaman: selectedTarget ?? '',
                                   buktiFoto: existing?.buktiFoto,
                                 );
-                                if (!mounted) return;
-                                setState(() {
-                                  final idx = _kegiatan.indexWhere(
-                                    (k) => k.id == kegiatanBaru.id,
-                                  );
-                                  if (idx >= 0) {
-                                    _kegiatan[idx] = kegiatanBaru;
-                                  } else {
-                                    _kegiatan.insert(0, kegiatanBaru);
+                                // send to backend (create or update) then refresh
+                                (() async {
+                                  try {
+                                    final token =
+                                        (context
+                                            .findAncestorStateOfType<
+                                              _HomePageState
+                                            >()
+                                            ?.widget
+                                            .token) ??
+                                        '';
+
+                                    // Determine current profil id robustly. If missing, try
+                                    // fetching fresh user data from backend before failing.
+                                    Future<int?> resolveProfilId() async {
+                                      final home = context
+                                          .findAncestorStateOfType<
+                                            _HomePageState
+                                          >();
+                                      final user = home?.widget.user;
+                                      if (user == null) return null;
+
+                                      dynamic p = user['profil'];
+                                      if (p is Map && p['id'] != null) {
+                                        return int.tryParse(p['id'].toString());
+                                      }
+                                      if (user['idProfil'] != null) {
+                                        return int.tryParse(
+                                          user['idProfil'].toString(),
+                                        );
+                                      }
+                                      if (user['id_profil'] != null) {
+                                        return int.tryParse(
+                                          user['id_profil'].toString(),
+                                        );
+                                      }
+
+                                      // Try fetching fresh user from backend using token.
+                                      // Prefer the ensure-profil endpoint which will create a profil if missing.
+                                      try {
+                                        final userIdRaw = user['id'];
+                                        final userId = userIdRaw != null
+                                            ? int.tryParse(userIdRaw.toString())
+                                            : null;
+                                        if (userId != null &&
+                                            token != null &&
+                                            token.isNotEmpty) {
+                                          final resp =
+                                              await ApiService.ensureProfilForUser(
+                                                userId,
+                                                token.toString(),
+                                              );
+                                          Map<String, dynamic> fresh = {};
+                                          if (resp['success'] == true &&
+                                              resp['data'] != null) {
+                                            fresh = Map<String, dynamic>.from(
+                                              resp['data'],
+                                            );
+                                          } else {
+                                            fresh = Map<String, dynamic>.from(
+                                              resp,
+                                            );
+                                          }
+                                          final freshProfil = fresh['profil'];
+                                          if (freshProfil is Map &&
+                                              freshProfil['id'] != null) {
+                                            // Update local home widget.user if possible
+                                            try {
+                                              home?.setState(() {
+                                                home.widget.user['profil'] =
+                                                    freshProfil;
+                                              });
+                                            } catch (_) {}
+                                            return int.tryParse(
+                                              freshProfil['id'].toString(),
+                                            );
+                                          }
+                                        }
+                                      } catch (e) {
+                                        debugPrint(
+                                          'Failed to ensure user profil id: $e',
+                                        );
+                                      }
+
+                                      // last-resort: if user itself is a profil-like entry
+                                      if (user['id'] != null) {
+                                        return int.tryParse(
+                                          user['id'].toString(),
+                                        );
+                                      }
+                                      return null;
+                                    }
+
+                                    final idProfil = await resolveProfilId();
+                                    // If a token exists, server will resolve the profil from the authenticated user.
+                                    final bool hasToken =
+                                        token != null &&
+                                        token.toString().isNotEmpty;
+                                    // NOTE: removed local frontend blocking when profil is missing.
+                                    // Let the backend decide and return detailed errors if operation is not permitted.
+
+                                    // prepare payload following backend's camelCase keys
+                                    final payload = <String, dynamic>{
+                                      'jenisKegiatan': selectedJenisKegiatan,
+                                      'tanggalMulai': currentRange.start
+                                          .toIso8601String()
+                                          .split('T')
+                                          .first,
+                                      'tanggalSelesai': currentRange.end
+                                          .toIso8601String()
+                                          .split('T')
+                                          .first,
+                                      'waktuMulai':
+                                          '${waktuMulai!.hour.toString().padLeft(2, '0')}:${waktuMulai!.minute.toString().padLeft(2, '0')}:00',
+                                      'waktuSelesai':
+                                          '${waktuSelesai!.hour.toString().padLeft(2, '0')}:${waktuSelesai!.minute.toString().padLeft(2, '0')}:00',
+                                      'jenisPestisida': pestisidaValue,
+                                      'targetPenanaman':
+                                          int.tryParse(
+                                            (selectedTarget ?? '')
+                                                .toString()
+                                                .split(' ')
+                                                .first,
+                                          ) ??
+                                          0,
+                                      'keterangan': keteranganController.text,
+                                    };
+
+                                    // Only include idProfil when there's no auth token (server will use token to resolve profil)
+                                    if (!hasToken) {
+                                      payload['idProfil'] = idProfil;
+                                    }
+
+                                    if (existing == null) {
+                                      await ApiService.createKegiatan(
+                                        token: token.toString(),
+                                        data: payload,
+                                      );
+                                    } else {
+                                      final idInt =
+                                          int.tryParse(existing.id) ?? 0;
+                                      if (idInt > 0) {
+                                        await ApiService.updateKegiatan(
+                                          token: token.toString(),
+                                          id: idInt,
+                                          data: payload,
+                                        );
+                                      } else {
+                                        await ApiService.createKegiatan(
+                                          token: token.toString(),
+                                          data: payload,
+                                        );
+                                      }
+                                    }
+
+                                    // refresh from backend
+                                    if (mounted) {
+                                      await context
+                                          .findAncestorStateOfType<
+                                            _HomePageState
+                                          >()
+                                          ?._loadKegiatanFromApi();
+                                    }
+                                    if (mounted) Navigator.pop(context);
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Gagal menyimpan kegiatan: $e',
+                                        ),
+                                      ),
+                                    );
                                   }
-                                  _colorFor(kegiatanBaru);
-                                  _reindexEvents();
-                                });
-                                Navigator.pop(context);
+                                })();
                               },
                               child: Text(
                                 existing == null
@@ -564,7 +794,13 @@ mixin _HomeModalsMixin on _HomePageStateBase {
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
               if (isRequired)
-                const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                const Text(
+                  ' *',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -577,7 +813,10 @@ mixin _HomeModalsMixin on _HomePageStateBase {
               value: value,
               isExpanded: true,
               decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -586,12 +825,12 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                 fillColor: const Color(0xFFF7F7F5),
               ),
               hint: Text(hint, style: const TextStyle(color: Colors.black54)),
-              icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: Colors.black54,
+              ),
               items: items.map((item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                );
+                return DropdownMenuItem<String>(value: item, child: Text(item));
               }).toList(),
               onChanged: onChanged,
             ),
@@ -628,7 +867,13 @@ mixin _HomeModalsMixin on _HomePageStateBase {
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
               if (isRequired)
-                const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                const Text(
+                  ' *',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -684,7 +929,7 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                           .map(
                             (e) => DropdownMenuEntry(
                               value: e,
-                              label: e.keterangan,
+                              label: e.jenisPenanaman,
                             ),
                           )
                           .toList(),
@@ -1005,13 +1250,77 @@ mixin _HomeModalsMixin on _HomePageStateBase {
                             ),
                     ),
                     const SizedBox(height: 16),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accent,
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Tutup'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              // pick image and upload
+                              final picker = ImagePicker();
+                              final xfile = await picker.pickImage(
+                                source: ImageSource.gallery,
+                                imageQuality: 85,
+                              );
+                              if (xfile == null) return;
+                              try {
+                                final token =
+                                    (context
+                                        .findAncestorStateOfType<
+                                          _HomePageState
+                                        >()
+                                        ?.widget
+                                        .token) ??
+                                    '';
+                                final idProfil =
+                                    (context
+                                        .findAncestorStateOfType<
+                                          _HomePageState
+                                        >()
+                                        ?.widget
+                                        .user['profil']?['id']) ??
+                                    0;
+                                final idKegiatan =
+                                    int.tryParse(kegiatan.id) ?? 0;
+                                if (idKegiatan == 0)
+                                  throw Exception('Invalid kegiatan id');
+                                await ApiService.uploadBuktiKegiatan(
+                                  token: token.toString(),
+                                  idKegiatan: idKegiatan,
+                                  idProfil: idProfil,
+                                  filePath: xfile.path,
+                                );
+                                // refresh list
+                                await context
+                                    .findAncestorStateOfType<_HomePageState>()
+                                    ?._loadKegiatanFromApi();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Bukti berhasil diunggah'),
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Gagal unggah bukti: $e'),
+                                  ),
+                                );
+                              }
+                            },
+                            child: const Text('Unggah Bukti'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: accent,
+                              minimumSize: const Size(double.infinity, 48),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Tutup'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1106,13 +1415,39 @@ mixin _HomeModalsMixin on _HomePageStateBase {
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () {
-                setState(() {
-                  _kegiatan.removeWhere((k) => k.id == kegiatan.id);
-                  _removeColor(kegiatan.id);
-                  _reindexEvents();
-                });
-                Navigator.pop(context);
+              onPressed: () async {
+                try {
+                  final token =
+                      (context
+                          .findAncestorStateOfType<_HomePageState>()
+                          ?.widget
+                          .token) ??
+                      '';
+                  final idInt = int.tryParse(kegiatan.id) ?? 0;
+                  if (idInt > 0) {
+                    await ApiService.deleteKegiatan(
+                      token: token.toString(),
+                      id: idInt,
+                    );
+                    // refresh backend-synced list
+                    await context
+                        .findAncestorStateOfType<_HomePageState>()
+                        ?._loadKegiatanFromApi();
+                  } else {
+                    // fallback local remove
+                    setState(() {
+                      _kegiatan.removeWhere((k) => k.id == kegiatan.id);
+                      _removeColor(kegiatan.id);
+                      _reindexEvents();
+                    });
+                  }
+                  Navigator.pop(context);
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal menghapus kegiatan: $e')),
+                  );
+                }
               },
               child: const Text('Hapus'),
             ),

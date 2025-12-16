@@ -1,6 +1,7 @@
 <!-- Sidebar -->
 <aside id="sidebar"
-    class="sidebar fixed left-0 top-0 bottom-0 w-64 bg-[#0b1319] text-white z-50 overflow-y-auto transition-transform duration-300 transform -translate-x-full lg:translate-x-0">
+    class="sidebar fixed left-0 top-0 bottom-0 w-64 bg-[#0b1319] text-white overflow-y-auto transition-transform duration-300 transform -translate-x-full lg:translate-x-0"
+    style="z-index: 1000;">
     <!-- Logo -->
     <div class="h-16 flex items-center justify-between px-4 border-b border-gray-700/50">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
@@ -144,7 +145,7 @@
 </aside>
 
 <!-- Mobile Sidebar Overlay -->
-<div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden hidden" onclick="closeSidebar()"></div>
+<div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden hidden transition-opacity duration-300" onclick="closeSidebar()"></div>
 
 <script>
     function openSidebar() {
@@ -174,10 +175,12 @@
     });
 
     function showNotifications() {
+        closeSidebar();
         showToast('No new notifications', 'info');
     }
 
     function showHelp() {
+        closeSidebar();
         showModal({
             title: 'Help & Support',
             content: `
@@ -199,6 +202,7 @@
     }
 
     function showSettings() {
+        closeSidebar();
         showToast('Settings coming soon', 'info');
     }
 </script>

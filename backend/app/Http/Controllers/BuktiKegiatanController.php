@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\BuktiKegiatan;
+use App\Http\Requests\StoreBuktiKegiatanRequest;
+use App\Http\Resources\BuktiKegiatanResource;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
@@ -19,67 +21,39 @@ class BuktiKegiatanController extends Controller
             'kegiatan:id,jenis_kegiatan'
         ])->get()
             ->map(function ($buktiKegiatan) {
-                return [
-                    'id' => $buktiKegiatan->id,
-                    'id_kegiatan' => $buktiKegiatan->id_kegiatan,
-                    'id_profil' => $buktiKegiatan->id_profil,
-                    'nama_foto' => $buktiKegiatan->nama_foto,
-                    'tipe_foto' => $buktiKegiatan->tipe_foto,
-                    'image_url' => $buktiKegiatan->image_url,
-                    'nama_pengguna' => $buktiKegiatan->profil?->user?->nama_pengguna,
-                    'jabatan' => $buktiKegiatan->profil?->jabatan?->jabatan,
-                    'jenis_kegiatan' => $buktiKegiatan->kegiatan?->jenis_kegiatan,
-                    'created_at' => $buktiKegiatan->created_at,
-                    'updated_at' => $buktiKegiatan->updated_at,
-                ];
+                // Add extra fields for Resource
+                $buktiKegiatan->nama_pengguna = $buktiKegiatan->profil?->user?->nama_pengguna;
+                $buktiKegiatan->jabatan = $buktiKegiatan->profil?->jabatan?->jabatan;
+                $buktiKegiatan->jenis_kegiatan = $buktiKegiatan->kegiatan?->jenis_kegiatan;
+                return $buktiKegiatan;
             });
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua bukti kegiatan',
-            'data' => $buktiKegiatans
+            'data' => BuktiKegiatanResource::collection($buktiKegiatans)
         ]);
     }
 
     // POST /api/bukti-kegiatan
-    public function store(Request $request)
+    public function store(StoreBuktiKegiatanRequest $request)
     {
-        $request->validate([
-            'id_kegiatan' => [
-                'required',
-                Rule::exists('kegiatan', 'id')
-            ],
-            'id_profil' => [
-                'required',
-                Rule::exists('profil', 'id'),
-                Rule::unique('bukti_kegiatan', 'id_profil')->where('id_kegiatan', $request->input('id_kegiatan'))
-            ],
-            'foto' => 'required|image|mimes:png,jpg,jpeg,svg,gif,webp|max:5120'
-        ], [
-            'id_kegiatan.required' => 'ID Kegiatan wajib diisi',
-            'id_kegiatan.exists' => 'Kegiatan tidak ditemukan',
-            'id_profil.required' => 'ID Profil wajib diisi',
-            'id_profil.exists' => 'Profil tidak ditemukan',
-            'id_profil.unique' => 'Profil ini sudah pernah mengirim bukti kegiatan. Satu profil hanya boleh mengirim 1 bukti per kegiatan.',
-            'foto.required' => 'Anda harus mengirim file gambar',
-            'foto.image' => 'File harus berupa gambar',
-            'foto.mimes' => 'Format gambar harus: png, jpg, jpeg, svg, gif, atau webp',
-            'foto.max' => 'Ukuran gambar tidak boleh lebih dari 5MB',
-        ]);
+        $validated = $request->validated();
+
 
         $file = $request->file('foto');
         $extension = $file->getClientOriginalExtension();
         $mimeType = $file->getClientMimeType();
 
         // Generate unique filename
-        $filename = 'bukti_' . $request->input('id_kegiatan') . '_' . $request->input('id_profil') . '_' . time() . '_' . Str::random(8) . '.' . $extension;
+        $filename = 'bukti_' . $validated['id_kegiatan'] . '_' . $validated['id_profil'] . '_' . time() . '_' . Str::random(8) . '.' . $extension;
 
         // Move file to public/images
         $file->move(public_path('images'), $filename);
 
         $buktiKegiatan = BuktiKegiatan::create([
-            'id_kegiatan' => $request->input('id_kegiatan'),
-            'id_profil' => $request->input('id_profil'),
+            'id_kegiatan' => $validated['id_kegiatan'],
+            'id_profil' => $validated['id_profil'],
             'nama_foto' => $filename,
             'tipe_foto' => $mimeType,
         ]);
@@ -89,15 +63,7 @@ class BuktiKegiatanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil ditambah',
-            'data' => [
-                'id' => $buktiKegiatan->id,
-                'id_kegiatan' => $buktiKegiatan->id_kegiatan,
-                'id_profil' => $buktiKegiatan->id_profil,
-                'nama_foto' => $buktiKegiatan->nama_foto,
-                'tipe_foto' => $buktiKegiatan->tipe_foto,
-                'image_url' => $buktiKegiatan->image_url,
-                'created_at' => $buktiKegiatan->created_at,
-            ]
+            'data' => new BuktiKegiatanResource($buktiKegiatan)
         ], 201);
     }
 
@@ -118,21 +84,14 @@ class BuktiKegiatanController extends Controller
             ], 404);
         }
 
+        // Add extra fields for Resource
+        $buktiKegiatan->nama_pengguna = $buktiKegiatan->profil?->user?->nama_pengguna;
+        $buktiKegiatan->jabatan = $buktiKegiatan->profil?->jabatan?->jabatan;
+        $buktiKegiatan->jenis_kegiatan = $buktiKegiatan->kegiatan?->jenis_kegiatan;
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $buktiKegiatan->id,
-                'id_kegiatan' => $buktiKegiatan->id_kegiatan,
-                'id_profil' => $buktiKegiatan->id_profil,
-                'nama_foto' => $buktiKegiatan->nama_foto,
-                'tipe_foto' => $buktiKegiatan->tipe_foto,
-                'image_url' => $buktiKegiatan->image_url,
-                'nama_pengguna' => $buktiKegiatan->profil?->user?->nama_pengguna,
-                'jabatan' => $buktiKegiatan->profil?->jabatan?->jabatan,
-                'jenis_kegiatan' => $buktiKegiatan->kegiatan?->jenis_kegiatan,
-                'created_at' => $buktiKegiatan->created_at,
-                'updated_at' => $buktiKegiatan->updated_at,
-            ]
+            'data' => new BuktiKegiatanResource($buktiKegiatan)
         ]);
     }
 
@@ -230,14 +189,7 @@ class BuktiKegiatanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bukti Kegiatan berhasil diperbarui',
-            'data' => [
-                'id' => $buktiKegiatan->id,
-                'id_kegiatan' => $buktiKegiatan->id_kegiatan,
-                'id_profil' => $buktiKegiatan->id_profil,
-                'nama_foto' => $buktiKegiatan->nama_foto,
-                'tipe_foto' => $buktiKegiatan->tipe_foto,
-                'image_url' => $buktiKegiatan->image_url,
-            ]
+            'data' => new BuktiKegiatanResource($buktiKegiatan)
         ]);
     }
 

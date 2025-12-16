@@ -20,7 +20,7 @@ class TaskItem {
 }
 
 // Sumber data bersama untuk Home dan Kalender
-const List<TaskItem> sharedTasks = [
+List<TaskItem> sharedTasks = [
   TaskItem(
     id: 'task-1',
     title: 'Pengolahan Tanah',
