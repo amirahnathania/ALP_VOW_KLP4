@@ -6,47 +6,57 @@ use Illuminate\Database\Eloquent\Model;
 
 class Kegiatan extends Model
 {
-    protected $primaryKey = 'Id_Kegiatan';
-    protected $table = 'kegiatans';
-    
+    protected $primaryKey = 'id';
+    protected $table = 'kegiatan';
+
     protected $fillable = [
-        'Jenis_Kegiatan',
-        'Id_Profil',
-        'Tanggal_Mulai',
-        'Tanggal_Selesai',
-        'Waktu_Mulai',
-        'Waktu_Selesai',
-        'Jenis_Pestisida',
-        'Target_Penanaman',
-        'Keterangan',
+        'jenis_kegiatan',
+        'id_profil',
+        'tanggal_mulai',
+        'tanggal_selesai',
+        'waktu_mulai',
+        'waktu_selesai',
+        'jenis_pestisida',
+        'target_penanaman',
+        'keterangan',
     ];
 
-    // Validasi sebelum menyimpan
+    protected $casts = [
+        'id' => 'integer',
+        'id_profil' => 'integer',
+        'tanggal_mulai' => 'date',
+        'tanggal_selesai' => 'date',
+        'target_penanaman' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // ========== EVENT HANDLING ==========
+
     protected static function booted()
     {
         static::creating(function ($model) {
-            if ($model->Waktu_Mulai === $model->Waktu_Selesai) {
+            if ($model->waktu_mulai === $model->waktu_selesai) {
                 throw new \Exception('waktu mulai dan waktu selesai tidak boleh sama');
             }
         });
 
         static::updating(function ($model) {
-            if ($model->Waktu_Mulai === $model->Waktu_Selesai) {
+            if ($model->waktu_mulai === $model->waktu_selesai) {
                 throw new \Exception('waktu mulai dan waktu selesai tidak boleh sama');
             }
         });
     }
-    
-public function profil()
+
+    // ========== RELATIONS ==========
+
+    public function profil()
     {
-        return $this->belongsTo(Profil::class,  'Id_Profil');
+        return $this->belongsTo(Profil::class, 'id_profil', 'id');
     }
 
-    /**
-     * Relasi dengan BuktiKegiatan
-     */
-    public function buktiKegiatans()
+    public function buktiKegiatan()
     {
-        return $this->hasMany(BuktiKegiatan::class, 'Id_Kegiatan');
+        return $this->hasMany(BuktiKegiatan::class, 'id_kegiatan', 'id');
     }
 }

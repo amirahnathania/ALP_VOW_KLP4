@@ -10,6 +10,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'auth_page.dart';
 import 'models/kegiatan.dart';
 import 'services/weather_service.dart';
+import 'services/api_service.dart';
 
 part 'kalender_gapoktan.dart';
 part 'home_modals.dart';
@@ -97,20 +98,200 @@ abstract class _HomePageStateBase extends State<HomePage> {
     _seedDummyData();
     _reindexEvents();
     _loadWeatherData();
+    // Attempt to load real kegiatan/bukti from backend; keep seeded data as fallback
+    _loadKegiatanFromApi();
+  }
+
+  TimeOfDay _parseTimeOfDay(String? s) {
+    if (s == null) return const TimeOfDay(hour: 0, minute: 0);
+    try {
+      // Accept formats like '08:30:00' or '08:30'
+      final parts = s.split(':');
+      final hh = int.tryParse(parts[0]) ?? 0;
+      final mm = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+      return TimeOfDay(hour: hh, minute: mm);
+    } catch (_) {
+      return const TimeOfDay(hour: 0, minute: 0);
+    }
+  }
+
+  Future<void> _loadKegiatanFromApi() async {
+    try {
+      final token = widget.token;
+      if (token == null || token.isEmpty) return;
+
+      final kegiatanResp = await ApiService.getKegiatanList(token: token);
+      final buktiResp = await ApiService.getBuktiList(token: token);
+
+      final List<dynamic> kegiatanData = kegiatanResp['data'] ?? [];
+      final List<dynamic> buktiData = buktiResp['data'] ?? [];
+
+      // Group bukti by idKegiatan
+      final Map<String, List<dynamic>> buktiByKegiatan = {};
+      for (final b in buktiData) {
+        final idK = b['idKegiatan']?.toString() ?? '';
+        buktiByKegiatan.putIfAbsent(idK, () => <dynamic>[]).add(b);
+      }
+
+      final List<Kegiatan> loaded = [];
+      for (final item in kegiatanData) {
+        try {
+          final id = (item['id'] ?? '').toString();
+          final keterangan = (item['keterangan'] ?? '').toString();
+          final jenis = (item['jenisKegiatan'] ?? '').toString();
+          final tanggalMulai = item['tanggalMulai'];
+          final tanggalSelesai = item['tanggalSelesai'];
+          final waktuMulai = item['waktuMulai']?.toString();
+          final waktuSelesai = item['waktuSelesai']?.toString();
+          final jenisPestisida = (item['jenisPestisida'] ?? '').toString();
+          final target = (item['targetPenanaman'] ?? '').toString();
+
+          final DateTime startDate = DateTime.parse(
+            tanggalMulai.toString(),
+          ).toLocal();
+          final DateTime endDate = DateTime.parse(
+            tanggalSelesai.toString(),
+          ).toLocal();
+          final TimeOfDay tStart = _parseTimeOfDay(waktuMulai);
+          final TimeOfDay tEnd = _parseTimeOfDay(waktuSelesai);
+
+          final List<dynamic> buktiFor = buktiByKegiatan[id] ?? [];
+          final List<PhotoEvidence> evidences = buktiFor.map<PhotoEvidence>((
+            b,
+          ) {
+            final uploadedAtRaw = b['createdAt'] ?? b['created_at'] ?? '';
+            DateTime uploadedAt;
+            try {
+              uploadedAt = DateTime.parse(uploadedAtRaw.toString()).toLocal();
+            } catch (_) {
+              uploadedAt = DateTime.now();
+            }
+            // Prefer explicit imageUrl from API; fall back to namaFoto provided by backend
+            String imageUrl = '';
+            if ((b['imageUrl'] ?? '').toString().isNotEmpty) {
+              imageUrl = b['imageUrl']?.toString() ?? '';
+            } else if ((b['image_url'] ?? '').toString().isNotEmpty) {
+              imageUrl = b['image_url']?.toString() ?? '';
+            } else if ((b['namaFoto'] ?? '').toString().isNotEmpty) {
+              imageUrl = ApiService.imageUrlFromName(
+                (b['namaFoto'] ?? '').toString(),
+              );
+            } else if ((b['nama_foto'] ?? '').toString().isNotEmpty) {
+              imageUrl = ApiService.imageUrlFromName(
+                (b['nama_foto'] ?? '').toString(),
+              );
+            }
+
+            return PhotoEvidence(
+              id: (b['id'] ?? '').toString(),
+              uploaderName:
+                  (b['namaPengguna'] ??
+                          b['profil']?['user']?['nama_pengguna'] ??
+                          '')
+                      .toString(),
+              uploaderRole: (b['jabatan'] ?? '').toString(),
+              uploaderEmail: '',
+              uploadedAt: uploadedAt,
+              imagePath: imageUrl,
+            );
+          }).toList();
+
+          final kegiatan = Kegiatan(
+            id: id,
+            keterangan: keterangan,
+            jenisPenanaman: jenis,
+            startDate: startDate,
+            endDate: endDate,
+            waktuMulai: tStart,
+            waktuSelesai: tEnd,
+            jenisPestisida: jenisPestisida,
+            targetPenanaman: target,
+            buktiFoto: evidences,
+          );
+
+          loaded.add(kegiatan);
+        } catch (e) {
+          debugPrint('Mapping kegiatan error: $e');
+        }
+      }
+
+      if (mounted && loaded.isNotEmpty) {
+        setState(() {
+          _kegiatan
+            ..clear()
+            ..addAll(loaded);
+          _resetColorCycle();
+          _reindexEvents();
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load kegiatan from API: $e');
+    }
+  }
+
+  String _formatDateString(dynamic raw) {
+    if (raw == null) return '-';
+    try {
+      final s = raw.toString();
+      final dt = DateTime.parse(s);
+      return DateFormat('dd MMM yyyy').format(dt.toLocal());
+    } catch (_) {
+      try {
+        final s = raw.toString();
+        if (s.contains('T')) return s.split('T').first;
+        return s;
+      } catch (_) {
+        return '-';
+      }
+    }
   }
 
   Future<void> _loadWeatherData() async {
     setState(() => _isLoadingWeather = true);
-    
+
     final weather = await WeatherService.getCurrentWeather();
     final forecast = await WeatherService.get7DayForecast();
-    
+
     if (mounted) {
       setState(() {
         _currentWeather = weather;
         _forecast = forecast;
         _isLoadingWeather = false;
       });
+    }
+  }
+
+  /// Refresh main data used across sections: kegiatan, weather, and profile.
+  Future<void> _refreshAll() async {
+    try {
+      // Always try to refresh kegiatan and weather
+      await Future.wait([_loadKegiatanFromApi(), _loadWeatherData()]);
+
+      // Attempt to refresh user profile fields if we have an ID and token
+      try {
+        final idRaw = widget.user['id'];
+        final token = widget.token;
+        if (idRaw != null && token != null && token.isNotEmpty) {
+          final id = int.tryParse(idRaw.toString());
+          if (id != null) {
+            final u = await ApiService.getUserById(id, token);
+            if (mounted) {
+              setState(() {
+                _profileName = (u['name'] ?? _profileName).toString();
+                _profileEmail = (u['email'] ?? _profileEmail).toString();
+                final photo = (u['photo'] ?? u['profil']?['photo'])?.toString();
+                if (photo != null && photo.isNotEmpty) {
+                  _profilePhotoPath = photo;
+                }
+              });
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to refresh profile: $e');
+      }
+    } catch (e) {
+      debugPrint('Refresh failed: $e');
     }
   }
 
@@ -554,12 +735,9 @@ class _HomePageState extends _HomePageStateBase
         children: [
           // Konten halaman
           Positioned.fill(
-            child: SafeArea(
-              bottom: false,
-              child: _buildSection(),
-            ),
+            child: SafeArea(bottom: false, child: _buildSection()),
           ),
-          
+
           // Navbar floating di bawah
           Positioned(
             left: 0,
@@ -568,9 +746,7 @@ class _HomePageState extends _HomePageStateBase
             child: SafeArea(
               top: false,
               minimum: const EdgeInsets.only(bottom: 16),
-              child: Center(
-                child: _buildNavbar(),
-              ),
+              child: Center(child: _buildNavbar()),
             ),
           ),
         ],

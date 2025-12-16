@@ -14,27 +14,28 @@ Route::get('/test', function () {
 
 // ========== PUBLIC ROUTES (tanpa auth) ==========
 Route::post('/login', [UserController::class, 'login']);
-Route::post('/users', [UserController::class, 'store']); 
+Route::post('/users', [UserController::class, 'store']);
 Route::apiResource('jabatan', JabatanController::class);
 Route::apiResource('profil', ProfilController::class);
-Route::apiResource('kegiatans', KegiatanController::class);
-Route::apiResource('bukti_kegiatans', BuktiKegiatanController::class);
-    
+Route::apiResource('kegiatan', KegiatanController::class);
+Route::apiResource('bukti-kegiatan', BuktiKegiatanController::class);
+
 // Custom routes untuk BuktiKegiatan
-Route::get('/bukti_kegiatans/{id}/image', [BuktiKegiatanController::class, 'getImage']);
+Route::get('/bukti-kegiatan/{id}/image', [BuktiKegiatanController::class, 'getImage']);
 
 // Custom routes untuk Kegiatan
-Route::get('/kegiatans/{id}/persentase-bukti', [KegiatanController::class, 'getPersentaseBukti']);
+Route::get('/kegiatan/{id}/persentase-bukti', [KegiatanController::class, 'getPersentaseBukti']);
 
 // ========== PROTECTED ROUTES (dengan auth) ==========
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [UserController::class, 'logout']);
-    
+
     // CRUD Users lainnya (GET, PUT, DELETE)
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
+    // Ensure the user has a profil; create one if missing and return user with profil.jabatan
+    Route::get('/users/{id}/ensure-profil', [UserController::class, 'ensureProfil']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::patch('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
-    
 });

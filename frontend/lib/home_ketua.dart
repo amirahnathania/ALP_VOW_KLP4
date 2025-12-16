@@ -8,11 +8,7 @@ class HomeKetuaPage extends StatefulWidget {
   final Map<String, dynamic> user;
   final String token;
 
-  const HomeKetuaPage({
-    super.key,
-    required this.user,
-    required this.token,
-  });
+  const HomeKetuaPage({super.key, required this.user, required this.token});
 
   @override
   State<HomeKetuaPage> createState() => _HomeKetuaPageState();
@@ -21,7 +17,7 @@ class HomeKetuaPage extends StatefulWidget {
 class _HomeKetuaPageState extends State<HomeKetuaPage> {
   // Track which tasks have submitted photos
   final Set<String> _submittedTasks = {};
-  
+
   // Weather data
   WeatherData? _currentWeather;
   List<DailyForecast>? _forecast;
@@ -35,10 +31,10 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
 
   Future<void> _loadWeatherData() async {
     setState(() => _isLoadingWeather = true);
-    
+
     final weather = await WeatherService.getCurrentWeather();
     final forecast = await WeatherService.get7DayForecast();
-    
+
     if (mounted) {
       setState(() {
         _currentWeather = weather;
@@ -51,12 +47,12 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
   Future<void> _handlePhotoCapture(String taskId) async {
     final file = await PhotoService.captureOrPick(context);
     if (file == null) return;
-    
+
     // Langsung tandai sebagai terkirim setelah foto dipilih
     setState(() {
       _submittedTasks.add(taskId);
     });
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -73,12 +69,13 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
         ),
       );
     }
-    
+
     // Optional: Upload ke API di background (tidak blocking UI)
     try {
-      await ApiService.uploadTaskPhoto(
+      await ApiService.uploadBuktiKegiatan(
         token: widget.token,
-        taskId: taskId,
+        idKegiatan: int.parse(taskId),
+        idProfil: 1, // TODO: Get from user profile
         filePath: file.path,
       );
     } catch (e) {
@@ -92,160 +89,165 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
     return SafeArea(
       bottom: false, // Navbar dihandle oleh MainLayout
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
-            // Greeting capsule header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                  border: Border.all(color: Colors.black12, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    // Small avatar circle
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black12,
-                        image: const DecorationImage(
-                          image: AssetImage('assets/logo.png'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Halo, ${widget.user['name'] ?? 'Pengguna'}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          // Greeting capsule header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+                border: Border.all(color: Colors.black12, width: 1),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Weather Forecast Widget
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _buildWeatherWidget(),
-            ),
-
-            const SizedBox(height: 16),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Daftar Tugas ',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Color.fromARGB(255, 14, 13, 13),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+              child: Row(
                 children: [
-                  _buildTaskItem(
-                    title: 'Pengolahan Tanah',
-                    color: const Color(0xFF7B5B18),
-                    location: '02 Desember 2024',
-                    distance: '08:00 - 11:00',
-                    detail:
-                        'Membersihkan lahan, membajak, dan meratakan tanah untuk persiapan tanam.',
-                    isSubmitted: _submittedTasks.contains('task-1'),
-                    onCapturePhoto: () => _handlePhotoCapture('task-1'),
+                  // Small avatar circle
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black12,
+                      image: const DecorationImage(
+                        image: AssetImage('assets/logo.png'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-
-                  const SizedBox(height: 16),
-
-                  _buildTaskItem(
-                    title: 'Pananaman Bibit',
-                    color: const Color(0xFF617F59),
-                    location: '10 Desember 2025',
-                    distance: '07:00 - 12:00',
-                    detail:
-                        'Penanaman bibit sesuai jarak tanam, penyiraman awal dan pengecekan akar.',
-                    isSubmitted: _submittedTasks.contains('task-2'),
-                    onCapturePhoto: () => _handlePhotoCapture('task-2'),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _buildTaskItem(
-                    title: 'Pestisida',
-                    color: const Color(0xFF7F7E79),
-                    location: '28 Desember 2025',
-                    distance: '07:00 - 10:00',
-                    detail:
-                        'Penyemprotan hama sesuai dosis anjuran dan pemantauan daun.',
-                    isSubmitted: _submittedTasks.contains('task-3'),
-                    onCapturePhoto: () => _handlePhotoCapture('task-3'),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _buildTaskItem(
-                    title: 'Pemupukan',
-                    color: const Color(0xFFD9C36A),
-                    location: '01 Januari 2026',
-                    distance: '07:00 - 12:00',
-                    detail:
-                        'Pemberian pupuk dasar dan susulan sesuai kebutuhan tanaman.',
-                    isSubmitted: _submittedTasks.contains('task-4'),
-                    onCapturePhoto: () => _handlePhotoCapture('task-4'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Halo, ${widget.user['name'] ?? 'Pengguna'}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Weather Forecast Widget
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _buildWeatherWidget(),
+          ),
+
+          const SizedBox(height: 16),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Daftar Tugas ',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: Color.fromARGB(255, 14, 13, 13),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+              children: [
+                _buildTaskItem(
+                  title: 'Pengolahan Tanah',
+                  color: const Color(0xFF7B5B18),
+                  location: '02 Desember 2024',
+                  distance: '08:00 - 11:00',
+                  detail:
+                      'Membersihkan lahan, membajak, dan meratakan tanah untuk persiapan tanam.',
+                  isSubmitted: _submittedTasks.contains('task-1'),
+                  onCapturePhoto: () => _handlePhotoCapture('task-1'),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildTaskItem(
+                  title: 'Pananaman Bibit',
+                  color: const Color(0xFF617F59),
+                  location: '10 Desember 2025',
+                  distance: '07:00 - 12:00',
+                  detail:
+                      'Penanaman bibit sesuai jarak tanam, penyiraman awal dan pengecekan akar.',
+                  isSubmitted: _submittedTasks.contains('task-2'),
+                  onCapturePhoto: () => _handlePhotoCapture('task-2'),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildTaskItem(
+                  title: 'Pestisida',
+                  color: const Color(0xFF7F7E79),
+                  location: '28 Desember 2025',
+                  distance: '07:00 - 10:00',
+                  detail:
+                      'Penyemprotan hama sesuai dosis anjuran dan pemantauan daun.',
+                  isSubmitted: _submittedTasks.contains('task-3'),
+                  onCapturePhoto: () => _handlePhotoCapture('task-3'),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildTaskItem(
+                  title: 'Pemupukan',
+                  color: const Color(0xFFD9C36A),
+                  location: '01 Januari 2026',
+                  distance: '07:00 - 12:00',
+                  detail:
+                      'Pemberian pupuk dasar dan susulan sesuai kebutuhan tanaman.',
+                  isSubmitted: _submittedTasks.contains('task-4'),
+                  onCapturePhoto: () => _handlePhotoCapture('task-4'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   /// Weather Widget with real API data - Sky & Growth Design
   Widget _buildWeatherWidget() {
     final now = DateTime.now();
-    final List<String> shortDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-    
+    final List<String> shortDays = [
+      'Min',
+      'Sen',
+      'Sel',
+      'Rab',
+      'Kam',
+      'Jum',
+      'Sab',
+    ];
+
     // Default/fallback data jika API gagal
     final currentTemp = _currentWeather?.temperature.round().toString() ?? '32';
     final currentCondition = _currentWeather?.condition ?? 'Cerah';
     final currentIcon = _currentWeather?.icon ?? Icons.wb_sunny_rounded;
     final location = _currentWeather?.location ?? 'Lokasi';
-    
+
     // Build forecast data
     List<Map<String, dynamic>> weeklyForecast = [];
-    
+
     if (_forecast != null && _forecast!.isNotEmpty) {
       for (int i = 0; i < _forecast!.length && i < 7; i++) {
         final f = _forecast![i];
@@ -462,7 +464,10 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
@@ -488,7 +493,10 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                     GestureDetector(
                       onTap: _loadWeatherData, // Tap to refresh
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
@@ -524,9 +532,9 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Divider
                 Container(
                   height: 1,
@@ -540,9 +548,9 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
-          
+
                 // Prakiraan 7 Hari label
                 Text(
                   'Prakiraan 7 Hari',
@@ -553,12 +561,15 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                     letterSpacing: 0.3,
                   ),
                 ),
-                
+
                 const SizedBox(height: 14),
-                
+
                 // Weekly forecast row - modern card style
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
@@ -576,21 +587,28 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                           Text(
                             forecast['day'] as String,
                             style: TextStyle(
-                              color: isToday ? Colors.white : Colors.white.withOpacity(0.7),
+                              color: isToday
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.7),
                               fontSize: 11,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                              fontWeight: isToday
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: isToday 
-                                  ? Colors.white.withOpacity(0.25) 
+                              color: isToday
+                                  ? Colors.white.withOpacity(0.25)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(12),
-                              border: isToday 
-                                  ? Border.all(color: Colors.white.withOpacity(0.3), width: 1)
+                              border: isToday
+                                  ? Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1,
+                                    )
                                   : null,
                             ),
                             child: Icon(
@@ -611,7 +629,9 @@ class _HomeKetuaPageState extends State<HomeKetuaPage> {
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                              fontWeight: isToday
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                             ),
                           ),
                         ],
@@ -671,7 +691,10 @@ Widget _buildTaskItem({
             // Show checkmark if submitted, otherwise show camera button
             if (isSubmitted)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4CAF50),
                   borderRadius: BorderRadius.circular(20),
@@ -679,11 +702,7 @@ Widget _buildTaskItem({
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.check_circle, size: 16, color: Colors.white),
                     SizedBox(width: 4),
                     Text(
                       'TERKIRIM',
@@ -796,11 +815,12 @@ Widget _buildSendPhotoCard(BuildContext context) {
                 final file = await PhotoService.captureOrPick(context);
                 if (file == null) return;
                 const token = 'YOUR_TOKEN_HERE';
-                const taskId = 'quick-send';
+                const idKegiatan = 1; // TODO: Get from actual kegiatan
                 try {
-                  await ApiService.uploadTaskPhoto(
+                  await ApiService.uploadBuktiKegiatan(
                     token: token,
-                    taskId: taskId,
+                    idKegiatan: idKegiatan,
+                    idProfil: 1, // TODO: Get from user profile
                     filePath: file.path,
                   );
                   ScaffoldMessenger.of(context).showSnackBar(

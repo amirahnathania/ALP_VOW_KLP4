@@ -120,15 +120,50 @@ class _AuthPageState extends State<AuthPage>
 
       if (!mounted) return;
 
-      // Simpan token dan user data
+      // Simpan token and fetch full user
       final token = response['token'];
-      final user = response['user'];
+      Map<String, dynamic> loginUser = {};
+      if (response['data'] != null) {
+        loginUser = Map<String, dynamic>.from(response['data']);
+      } else if (response['user'] != null) {
+        loginUser = Map<String, dynamic>.from(response['user']);
+      }
+
+      Map<String, dynamic> fullUser = loginUser;
+      final userId = loginUser['id'] as int?;
+      if (userId != null) {
+        try {
+          final fullResp = await ApiService.getUserById(userId, token);
+          if (fullResp['success'] == true && fullResp['data'] != null) {
+            fullUser = Map<String, dynamic>.from(fullResp['data']);
+          }
+        } catch (e) {
+          debugPrint('Failed to fetch full user after login: $e');
+        }
+      }
+
+      // Flatten nested profil.jabatan dates to top-level keys used by gapoktan UI
+      try {
+        final profil = fullUser['profil'];
+        if (profil != null && profil is Map) {
+          final jab = profil['jabatan'];
+          if (jab != null && jab is Map) {
+            fullUser['awal_jabatan'] =
+                jab['awal_jabatan'] ?? jab['awalJabatan'];
+            fullUser['akhir_jabatan'] =
+                jab['akhir_jabatan'] ?? jab['akhirJabatan'];
+            fullUser['awalJabatan'] = jab['awalJabatan'] ?? jab['awal_jabatan'];
+            fullUser['akhirJabatan'] =
+                jab['akhirJabatan'] ?? jab['akhir_jabatan'];
+          }
+        }
+      } catch (_) {}
 
       // Navigasi ke HomePage
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomePage(user: user, token: token),
+          builder: (context) => HomePage(user: fullUser, token: token),
         ),
       );
     } catch (error) {

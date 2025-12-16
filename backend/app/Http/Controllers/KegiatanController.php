@@ -5,16 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Kegiatan;
 use App\Models\Profil;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreKegiatanRequest;
+use App\Http\Requests\UpdateKegiatanRequest;
+use App\Http\Resources\KegiatanResource;
 
 class KegiatanController extends Controller
 {
     /**
-     * Validasi apakah Id_Profil memiliki jabatan "Ketua Gabungan Kelompok Tani"
+     * Validasi apakah id_profil memiliki jabatan "Ketua Gabungan Kelompok Tani"
      */
     private function validateProfilIsKetua($idProfil)
     {
         $profil = Profil::with('jabatan')->find($idProfil);
-        
+
         if (!$profil) {
             return [
                 'valid' => false,
@@ -29,11 +32,10 @@ class KegiatanController extends Controller
             ];
         }
 
-        // Cek apakah jabatan adalah "Ketua Gabungan Kelompok Tani"
-        if ($profil->jabatan->Jabatan !== 'Ketua Gabungan Kelompok Tani') {
+        if ($profil->jabatan->jabatan !== 'Ketua Gabungan Kelompok Tani') {
             return [
                 'valid' => false,
-                'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat membuat kegiatan. Jabatan saat ini: ' . $profil->jabatan->Jabatan
+                'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat membuat kegiatan. Jabatan saat ini: ' . $profil->jabatan->jabatan
             ];
         }
 
@@ -42,165 +44,196 @@ class KegiatanController extends Controller
             'message' => 'Validasi jabatan berhasil'
         ];
     }
-    /**
-     * Display a listing of the resource.
-     */
+
+    // GET /api/kegiatan
     public function index()
     {
-        // Get total profil dengan jabatan ketua
         $totalKetuaProfileCount = Profil::whereHas('jabatan', function ($query) {
-            $query->where('Jabatan', 'Ketua');
+            $query->where('jabatan', 'Ketua Gabungan Kelompok Tani');
         })->count();
 
         $kegiatans = Kegiatan::with('profil')
-            ->withCount('buktiKegiatans')
+            ->withCount('buktiKegiatan')
             ->get()
             ->map(function ($kegiatan) use ($totalKetuaProfileCount) {
-                $persentase = $totalKetuaProfileCount > 0 
-                    ? ($kegiatan->bukti_kegiatans_count / $totalKetuaProfileCount) * 100
+                $persentase = $totalKetuaProfileCount > 0
+                    ? ($kegiatan->bukti_kegiatan_count / $totalKetuaProfileCount) * 100
                     : 0;
 
-                return array_merge($kegiatan->toArray(), [
-                    'persentase_bukti' => round($persentase, 2)
-                ]);
+                $kegiatan->persentase_bukti = round($persentase, 2);
+                return $kegiatan;
             });
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua kegiatan',
-            'data' => $kegiatans
+            'data' => KegiatanResource::collection($kegiatans)
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    // POST /api/kegiatan
+    public function store(StoreKegiatanRequest $request)
     {
-        $Validated = $request->validate([
-            'Jenis_Kegiatan' => 'required|string|max:255',
-            'Id_Profil' => 'required|exists:profil,Id_Profil',
-            'Tanggal_Mulai' => 'required|date',
-            'Tanggal_Selesai' => 'required|date',
-            'Waktu_Mulai' => 'required|date_format:H:i:s',
-            'Waktu_Selesai' => 'required|date_format:H:i:s',
-            'Jenis_Pestisida' => 'nullable|string|max:255',
-            'Target_Penanaman' => 'required|integer',
-            'Keterangan' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
-        // Validasi waktu mulai dan waktu selesai tidak boleh sama
-        if ($Validated['Waktu_Mulai'] === $Validated['Waktu_Selesai']) {
+        // Resolve id_profil from authenticated user or from provided email if possible.
+        // This lets clients omit idProfil and rely on auth token or email.
+        $idProfilResolved = null;
+        try {
+            $authUser = $request->user();
+            if ($authUser) {
+                $profil = Profil::where('id_user', $authUser->id)->first();
+                if (!$profil) {
+                    // create profil using an active or fallback jabatan
+                    $jabatan = \App\Models\Jabatan::aktif()->first() ?? \App\Models\Jabatan::first();
+                    if (!$jabatan) {
+                        $jabatan = \App\Models\Jabatan::create([
+                            'jabatan' => 'Anggota Sementara',
+                            'awal_jabatan' => now()->format('Y-m-d'),
+                            'akhir_jabatan' => null,
+                        ]);
+                    }
+                    $profil = Profil::create([
+                        'id_user' => $authUser->id,
+                        'id_jabatan' => $jabatan->id,
+                    ]);
+                }
+                $idProfilResolved = $profil->id;
+            } elseif ($request->filled('email')) {
+                $user = \App\Models\User::where('email', $request->input('email'))->first();
+                if ($user) {
+                    $profil = Profil::firstOrCreate([
+                        'id_user' => $user->id,
+                    ], [
+                        'id_jabatan' => (\App\Models\Jabatan::aktif()->first() ?? \App\Models\Jabatan::first())->id ?? 1,
+                    ]);
+                    $idProfilResolved = $profil->id;
+                }
+            }
+        } catch (\Exception $e) {
+            // ignore and fall back to provided id_profil if any
+        }
+
+        if ($idProfilResolved !== null) {
+            $validated['id_profil'] = $idProfilResolved;
+        }
+
+
+        if ($validated['waktu_mulai'] === $validated['waktu_selesai']) {
             return response()->json([
                 'success' => false,
-                'message' => 'waktu mulai dan waktu selesai tidak boleh sama'
+                'message' => 'Waktu mulai dan waktu selesai tidak boleh sama'
             ], 422);
         }
 
-        // Validasi jabatan: hanya Ketua Gabungan Kelompok Tani yang dapat membuat kegiatan
-        $jabatanValidation = $this->validateProfilIsKetua($Validated['Id_Profil']);
-        if (!$jabatanValidation['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => $jabatanValidation['message']
-            ], 403);
+        // Allow the authenticated user to create kegiatan for their own profil
+        $profilForValidation = Profil::find($validated['id_profil']);
+        if ($profilForValidation) {
+            $authUser = $request->user();
+            $allow = false;
+            if ($authUser && $profilForValidation->id_user == $authUser->id) {
+                // Owner may create kegiatan for themselves even if not Ketua
+                $allow = true;
+            }
+            if (!$allow) {
+                $jabatanValidation = $this->validateProfilIsKetua($validated['id_profil']);
+                if (!$jabatanValidation['valid']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $jabatanValidation['message']
+                    ], 403);
+                }
+            }
         }
 
-        $kegiatan = Kegiatan::create($Validated);
+        $kegiatan = Kegiatan::create($validated);
         $kegiatan->load('profil');
+
         return response()->json([
             'success' => true,
             'message' => 'Kegiatan berhasil ditambah',
-            'data' => $kegiatan
+            'data' => new KegiatanResource($kegiatan)
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
+    // GET /api/kegiatan/{id}
     public function show($id)
     {
-        // Get total profil dengan jabatan ketua
         $totalKetuaProfileCount = Profil::whereHas('jabatan', function ($query) {
-            $query->where('Jabatan', 'Ketua Gabungan Kelompok Tani');
+            $query->where('jabatan', 'Ketua Gabungan Kelompok Tani');
         })->count();
 
         $kegiatan = Kegiatan::with('profil')
-            ->withCount('buktiKegiatans')
+            ->withCount('buktiKegiatan')
             ->find($id);
-        
+
         if (!$kegiatan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Id_Kegiatan tidak ditemukan'
+                'message' => 'Kegiatan tidak ditemukan'
             ], 404);
         }
 
-        // Hitung persentase
-        $persentase = $totalKetuaProfileCount > 0 
-            ? ($kegiatan->bukti_kegiatans_count / $totalKetuaProfileCount) * 100 
+        $persentase = $totalKetuaProfileCount > 0
+            ? ($kegiatan->bukti_kegiatan_count / $totalKetuaProfileCount) * 100
             : 0;
 
-        $data = array_merge($kegiatan->toArray(), [
-            'persentase_bukti' => round($persentase, 2)
-        ]);
+        $kegiatan->persentase_bukti = round($persentase, 2);
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => new KegiatanResource($kegiatan)
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
+    // PUT/PATCH /api/kegiatan/{id}
+    public function update(UpdateKegiatanRequest $request, $id)
     {
-        // Cari kegiatan berdasarkan ID
         $kegiatan = Kegiatan::find($id);
-        
+
         if (!$kegiatan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Id_Kegiatan tidak ditemukan'
+                'message' => 'Kegiatan tidak ditemukan'
             ], 404);
         }
 
-        // Validasi: hanya Ketua yang bisa update kegiatan
-        $jabatanValidation = $this->validateProfilIsKetua($kegiatan->Id_Profil);
-        if (!$jabatanValidation['valid']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat mengubah kegiatan'
-            ], 403);
+        // Allow the authenticated owner of the kegiatan to update it even if not Ketua
+        $authUser = $request->user();
+        $allowUpdate = false;
+        try {
+            if ($authUser && $kegiatan->profil && $kegiatan->profil->id_user == $authUser->id) {
+                $allowUpdate = true;
+            }
+        } catch (\Exception $e) {
+            // ignore and fall through to validation
         }
 
-        $Validated = $request->validate([
-            'Jenis_Kegiatan' => 'sometimes|required|string|max:255',
-            'Id_Profil' => 'required|exists:profil,Id_Profil',
-            'Tanggal_Mulai' => 'sometimes|required|date',
-            'Tanggal_Selesai' => 'sometimes|required|date',
-            'Waktu_Mulai' => 'sometimes|required|date_format:H:i:s',
-            'Waktu_Selesai' => 'sometimes|required|date_format:H:i:s',
-            'Jenis_Pestisida' => 'nullable|string|max:255',
-            'Target_Penanaman' => 'sometimes|required|integer',
-            'Keterangan' => 'nullable|string',
-        ]);
+        if (!$allowUpdate) {
+            $jabatanValidation = $this->validateProfilIsKetua($kegiatan->id_profil);
+            if (!$jabatanValidation['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya Ketua Gabungan Kelompok Tani yang dapat mengubah kegiatan'
+                ], 403);
+            }
+        }
 
-        // Validasi waktu mulai dan waktu selesai tidak boleh sama
-        $waktuMulai = $Validated['Waktu_Mulai'] ?? $kegiatan->Waktu_Mulai;
-        $waktuSelesai = $Validated['Waktu_Selesai'] ?? $kegiatan->Waktu_Selesai;
-        
+        $validated = $request->validated();
+
+
+        $waktuMulai = $validated['waktu_mulai'] ?? $kegiatan->waktu_mulai;
+        $waktuSelesai = $validated['waktu_selesai'] ?? $kegiatan->waktu_selesai;
+
         if ($waktuMulai === $waktuSelesai) {
             return response()->json([
                 'success' => false,
-                'message' => 'waktu mulai dan waktu selesai tidak boleh sama'
+                'message' => 'Waktu mulai dan waktu selesai tidak boleh sama'
             ], 422);
         }
 
-        // Jika Id_Profil diubah, validasi jabatan profil baru
-        if (isset($Validated['Id_Profil']) && $Validated['Id_Profil'] !== $kegiatan->Id_Profil) {
-            $jabatanValidationNew = $this->validateProfilIsKetua($Validated['Id_Profil']);
+        if (isset($validated['id_profil']) && $validated['id_profil'] !== $kegiatan->id_profil) {
+            $jabatanValidationNew = $this->validateProfilIsKetua($validated['id_profil']);
             if (!$jabatanValidationNew['valid']) {
                 return response()->json([
                     'success' => false,
@@ -209,21 +242,21 @@ class KegiatanController extends Controller
             }
         }
 
-        $kegiatan->update($Validated);
+        $kegiatan->update($validated);
         $kegiatan->load('profil');
+
         return response()->json([
             'success' => true,
             'message' => 'Kegiatan berhasil diperbarui',
-            'data' => $kegiatan
+            'data' => new KegiatanResource($kegiatan)
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    // DELETE /api/kegiatan/{id}
+    public function destroy($id)
     {
         $kegiatan = Kegiatan::find($id);
+
         if (!$kegiatan) {
             return response()->json([
                 'success' => false,
@@ -231,64 +264,57 @@ class KegiatanController extends Controller
             ], 404);
         }
 
-        $kegiatan->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'Kegiatan berhasil dihapus'
-        ]);
+        // Delete related bukti_kegiatan and their image files first to avoid FK constraint errors
+        try {
+            $bukits = $kegiatan->buktiKegiatan()->get();
+            foreach ($bukits as $bukti) {
+                try {
+                    $imagePath = $bukti->image_path ?? null;
+                    if ($imagePath && file_exists($imagePath)) {
+                        @unlink($imagePath);
+                    }
+                } catch (\Exception $e) {
+                    // ignore file deletion errors
+                }
+                try {
+                    $bukti->delete();
+                } catch (\Exception $e) {
+                    // ignore individual delete errors and continue
+                }
+            }
+
+            $kegiatan->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kegiatan berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus kegiatan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * Get semua kegiatan yang dibuat oleh Ketua Gabungan Kelompok Tani
-     */
-    public function getByKetua()
+    // GET /api/kegiatan/{id}/persentase-bukti
+    public function getPersentaseBukti($id)
     {
-        $kegiatans = Kegiatan::whereHas('profil.jabatan', function ($query) {
-            $query->where('Jabatan', 'Ketua Gabungan Kelompok Tani');
-        })->with('profil')->get();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar kegiatan yang dibuat oleh Ketua Gabungan Kelompok Tani',
-            'data' => $kegiatans
-        ]);
-    }
-
-    /**
-     * Verifikasi apakah profil memiliki jabatan Ketua Gabungan Kelompok Tani
-     */
-    public function verifyKetuaJabatan($idProfil)
-    {
-        $validation = $this->validateProfilIsKetua($idProfil);
-        
-        return response()->json([
-            'success' => $validation['valid'],
-            'message' => $validation['message']
-        ], $validation['valid'] ? 200 : 403);
-    }
-
-    /**
-     * Get persentase bukti kegiatan berdasarkan Id_Kegiatan
-     */
-    public function getPersentaseBukti($idKegiatan)
-    {
-        // Get total profil dengan jabatan ketua
         $totalKetuaProfileCount = Profil::whereHas('jabatan', function ($query) {
-            $query->where('Jabatan', 'Ketua Gabungan Kelompok Tani');
+            $query->where('jabatan', 'Ketua Gabungan Kelompok Tani');
         })->count();
 
-        $kegiatan = Kegiatan::withCount('buktiKegiatans')->find($idKegiatan);
-        
+        $kegiatan = Kegiatan::withCount('buktiKegiatan')->find($id);
+
         if (!$kegiatan) {
             return response()->json([
                 'success' => false,
-                'message' => 'Id_Kegiatan tidak ditemukan'
+                'message' => 'Kegiatan tidak ditemukan'
             ], 404);
         }
 
-        // Hitung persentase
-        $persentase = $totalKetuaProfileCount > 0 
-            ? ($kegiatan->bukti_kegiatans_count / $totalKetuaProfileCount) * 100 
+        $persentase = $totalKetuaProfileCount > 0
+            ? ($kegiatan->bukti_kegiatan_count / $totalKetuaProfileCount) * 100
             : 0;
 
         return response()->json([

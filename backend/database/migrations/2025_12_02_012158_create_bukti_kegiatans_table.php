@@ -12,20 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bukti_kegiatans', function (Blueprint $table) {
-            $table->id('Id_Bukti_Kegiatan');
-            $table->unsignedBigInteger('Id_Kegiatan');
-            $table->unsignedBigInteger('Id_Profil');
-            $table->binary('Bukti_Foto');  // BLOB untuk menyimpan data biner file gambar
-            $table->string('mime_type')->nullable();  // Menyimpan tipe MIME (image/jpeg, image/png, dll)
+        Schema::create('bukti_kegiatan', function (Blueprint $table) {
+            $table->id('id');
+            $table->unsignedBigInteger('id_kegiatan');
+            $table->unsignedBigInteger('id_profil');
+            $table->string('nama_foto');
+            $table->string('tipe_foto');
             $table->timestamps();
-
-            // Unique constraint: 1 profil per kegiatan (bukan global unique)
-            $table->unique(['Id_Kegiatan', 'Id_Profil']);
-            
-            // Add foreign key constraints dengan kolom yang BENAR
-            $table->foreign('Id_Kegiatan')->references('Id_Kegiatan')->on('kegiatans');
-            $table->foreign('Id_Profil')->references('Id_Profil')->on('profil');
+            // $table->unique(['id_kegiatan', 'id_profil']);
+            $table->foreign('id_kegiatan')->references('id')->on('kegiatan');
+            $table->foreign('id_profil')->references('id')->on('profil');
         });
     }
 
@@ -34,7 +30,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bukti_kegiatans');
+        Schema::dropIfExists('bukti_kegiatan');
     }
-    
+
 };
